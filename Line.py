@@ -1,5 +1,6 @@
 import numpy as np
 
+
 class Line:
     def __init__(self, raw_line: np.array):
         self.norm = np.linalg.norm
@@ -19,3 +20,11 @@ def get_line_solution(points: list[np.array, np.array]) -> tuple[float, float]:
     a = np.vstack([x_coords, np.ones(len(x_coords))]).T
     k, b = np.linalg.lstsq(a, y_coords, rcond=None)[0]
     return k, b
+
+
+def get_intersection_point(line1: Line, line2: Line) -> tuple[int, int]:
+    if line1.k == line2.k:
+        return None
+    x: float = (line2.b - line1.b) / (line1.k - line2.k)
+    y: float = line1.k * x + line1.b
+    return round(x), round(y)
