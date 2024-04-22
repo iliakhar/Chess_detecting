@@ -1,5 +1,6 @@
 
 import csv
+import cv2
 import glob
 from ConvNet import *
 
@@ -9,6 +10,7 @@ def create_annotation(filename: str, path: str, folders_names: list[str]):
         file_writer = csv.writer(w_file, delimiter=",", lineterminator="\r")
         for ind, class_name in enumerate(folders_names):
             files = glob.glob(path + class_name + '\\*.jpg')
+
             for filename in files:
                 file_writer.writerow([filename, ind])
 
@@ -23,14 +25,20 @@ def resave_to_gray_image(folder_from: str, folder_to: str):
 
 
 def main():
-    annot_train_filename = 'lattice_points_train_annot.csv'
-    annot_test_filename = 'lattice_points_test_annot.csv'
+    # anot_path: str = getcwd() + '\\lattice_points_train_my_annot.csv'
+    # folder_path = getcwd() + '\\lattice_points_ml\\latchess21\\'
+    # create_annotation(anot_path, folder_path, ['no_train_my', 'ok_train_my'])
+
+    # annot_train_filename = 'lattice_points_train_annot.csv'
+    annot_train_filename = 'lattice_points_train_my_annot.csv'
+    # annot_test_filename = 'lattice_points_test_annot.csv'
 
     model: ConvNet = ConvNet()
     model = model.to(model.device)
-    model.load_model(os.getcwd() + '\\lattice_points_ml\\model\\model_1.pt')
+    model.load_model(getcwd() + '\\lattice_points_ml\\model\\model_51.pt')
+    model.train_model(100, annot_train_filename, 'model_6.pt', 60)
     # model.test_model(annot_test_filename)
-    model.predict_model(cv2.imread(os.getcwd() + '\\lattice_points_ml\\latchess21\\ok_test\\65100926823770869_270.jpg', cv2.IMREAD_GRAYSCALE))
+    # model.predict_model(cv2.imread(os.getcwd() + '\\lattice_points_ml\\latchess21\\ok_test\\65100926823770869_270.jpg', cv2.IMREAD_GRAYSCALE))
 
 if __name__ == '__main__':
     main()

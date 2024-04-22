@@ -1,8 +1,9 @@
 import math
 
 import cv2
-import bisect
+from bisect import bisect_left, bisect_right
 from Line import *
+from Point import *
 
 
 def resizing(img, new_width=None, new_height=None, interp=cv2.INTER_LINEAR):
@@ -34,26 +35,28 @@ def draw_lines(img: np.ndarray, grouped_lines: list[list[Line]], colors: list[tu
         cv2.destroyAllWindows()
 
 
-def draw_points(img: np.ndarray, grouped_points: list[list[tuple[int, int]]], colors: list[tuple],
+def draw_points(img: np.ndarray, grouped_points: list[list[Point]], colors: list[tuple],
                 img_name: str = 'image0', is_wait: bool = True) -> None:
     tmp_img = img.copy()
     for group_ind, group in enumerate(grouped_points):
         for point in group:
-            cv2.circle(tmp_img, center=point, radius=6, color=colors[group_ind % len(colors)], thickness=-1, )
+            cv2.circle(tmp_img, center=(point.x, point.y), radius=6, color=colors[group_ind % len(colors)],
+                       thickness=-1, )
     cv2.imshow(img_name, tmp_img)
     if is_wait:
         cv2.waitKey(0)
         cv2.destroyAllWindows()
 
 
-def find_intersection_points(lines: list[Line]) -> list[tuple[int, int]]:
-    points_list: set = set()
-    lines.sort(key=lambda x: x.k)
+def find_intersection_points(lines: list[Line]) -> list[Point]:
+    lim_angle = 20
+    points_set: set = set()
+    lines.sort(key=lambda x: x.angle)
     for ind, line1 in enumerate(lines):
-        left_border = bisect.bisect_left(lines, line1.k-0.8, key=lambda x: x.k)
-        right_border = bisect.bisect_right(lines, line1.k+0.8, key=lambda x: x.k)
+        left_border = bisect_left(lines, line1.angle - lim_angle, key=lambda x: x.angle)
+        right_border = bisect_right(lines, line1.angle + lim_angle, key=lambda x: x.angle)
 
-        for line_ind in range(ind+1, len(lines)):
+        for line_ind in range(ind + 1, len(lines)):
             if left_border < line_ind < right_border:
                 continue
             point: tuple[int, int] = get_intersection_point(line1, lines[line_ind])
@@ -62,9 +65,26 @@ def find_intersection_points(lines: list[Line]) -> list[tuple[int, int]]:
                                                                                     line1.p2[1]) and check_range(
                     point[0], lines[line_ind].p1[0], lines[line_ind].p2[0])
                         and check_range(point[1], lines[line_ind].p1[1], lines[line_ind].p2[1])):
-                    points_list.add(point)
+                    min_line_angle = min(abs(lines[ind].angle), abs(lines[line_ind].angle))
+                    if min_line_angle == abs(lines[line_ind].angle):
+                        points_set.add(Point(point, line_ind, ind))
+                    else:
+                        points_set.add(Point(point, ind, line_ind))
 
-    return list(points_list)
+    return list(points_set)
+
+
+# def find_intersection_points_by_lists(lines: list[Line], h_lines: list[int], v_lines: list[int], shape: tuple) -> list[
+#     Point]:
+#     points_set: set = set()
+#     for h_ind in h_lines:
+#         for v_ind in v_lines:
+#             point = get_intersection_point(lines[h_ind], lines[v_ind])
+#             if type(point) is tuple:
+#                 if 0 < point[0] < shape[1] and 0 < point[1] < shape[0]:
+#                     points_set.add(Point(point, h_ind, v_ind))
+#
+#     return list(points_set)
 
 
 def check_range(num: int, left: int, right: int):
@@ -78,3 +98,7 @@ def get_split_inds(left_border: int, right_border: int, numper_of_parts) -> tupl
     lst_size: int = right_border - left_border + 1
     block_size: int = math.ceil(lst_size / numper_of_parts)
     return block_size, [i for i in range(left_border, right_border + 1, block_size)]
+
+
+def get_xy_dist(p1: Point, p2: Point) -> tuple[int, int]:
+    return abs(p1.x - p2.x), abs(p1.y - p2.y)

@@ -1,5 +1,4 @@
-import os
-import cv2
+from os import getcwd
 import numpy as np
 import torch.nn as nn
 import torch
@@ -21,15 +20,15 @@ class ConvNet(nn.Module):
 
 
         #21x21x1
-        self.layer1 = nn.Sequential(nn.Conv2d(1, 12, kernel_size=3, stride=1, padding=1),
+        self.layer1 = nn.Sequential(nn.Conv2d(1, 20, kernel_size=3, stride=1, padding=1),
                                     nn.ReLU(), nn.MaxPool2d(kernel_size=2, stride=2, ceil_mode=True))
         #11x11x12
-        self.layer2 = nn.Sequential(nn.Conv2d(12, 24, kernel_size=3, stride=1, padding=1),
+        self.layer2 = nn.Sequential(nn.Conv2d(20, 40, kernel_size=3, stride=1, padding=1),
                                     nn.ReLU(), nn.MaxPool2d(kernel_size=2, stride=2, ceil_mode=True))
         #6x6x24
-        self.drop_out = nn.Dropout(p=0.2)
-        self.fc1 = nn.Linear(6 * 6 * 24, 500)
-        self.fc2 = nn.Linear(500, 2)
+        self.drop_out = nn.Dropout(p=0.5)
+        self.fc1 = nn.Linear(6 * 6 * 40, 800)
+        self.fc2 = nn.Linear(800, 2)
         # self.sm3 = nn.Softmax(0)
 
         self.optimizer = torch.optim.Adam(self.parameters(), lr=self.learning_rate)
@@ -84,7 +83,7 @@ class ConvNet(nn.Module):
                           .format(epoch + 1, num_epochs, i + 1, total_step, loss.item(),
                                   (correct / total) * 100))
 
-        torch.save(self.state_dict(), os.getcwd() + f'\\lattice_points_ml\\model\\{model_filename}')
+        torch.save(self.state_dict(), getcwd() + f'\\lattice_points_ml\\model\\{model_filename}')
 
     def test_model(self, annot_test_filename: str, batch_size: int = 30):
         test_dataset = LatticePointsDataset(annot_test_filename, self.transform)

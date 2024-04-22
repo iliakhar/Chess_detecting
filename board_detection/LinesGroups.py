@@ -1,8 +1,4 @@
-import math
-import cv2
-import random
-import bisect
-
+from random import randint
 from joblib import Parallel, delayed
 
 from UsefulFunctions import *
@@ -27,6 +23,7 @@ class LinesGroups:
         self.img = img
         Line.right_up_cord = (0, img.shape[1])
         gray_img = cv2.cvtColor(self.img, cv2.COLOR_BGR2GRAY)
+        # gray_img = self.img
         self.lines = self.get_lines(gray_img)
         if len(self.lines) == 0:
             return
@@ -46,7 +43,7 @@ class LinesGroups:
 
     def get_lines(self, img: np.ndarray) -> list[Line]:
         gaussian = cv2.GaussianBlur(img, (self.blur_koef, self.blur_koef), 0)
-        edges = cv2.Canny(gaussian, 20, 30, apertureSize=3)
+        edges = cv2.Canny(gaussian, 20, 30, apertureSize=3)  # 20 30
         # raw_lines: np.ndarray = np.ndarray([])
         raw_lines: np.ndarray = cv2.HoughLinesP(edges, 1, np.pi / 180, 100, minLineLength=7, maxLineGap=10)
         lines: list[Line] = []
@@ -54,46 +51,29 @@ class LinesGroups:
         if type(raw_lines) is not np.ndarray:
             return []
         for raw_line in raw_lines:
-            lines.append(Line(raw_line[0]))
-        lines.sort(key=lambda x: x.k)
+            lines.append(Line())
+            lines[-1].set_by_raw_line(raw_line[0])
+        lines.sort(key=lambda x: x.angle)
         return lines
-
-    def remove_unnecessary_lines(self, lines: list[Line], p: float = 0.9) -> None:
-        line_ind: int = 0
-        while line_ind < len(lines):
-            is_necessary_line: bool = False
-            compare = lambda num, left, right: left <= num <= right
-            if lines[line_ind].k < 0:
-                compare = lambda num, left, right: right <= num <= left
-            for ind, line in enumerate(lines):
-                if ind != line_ind:
-                    if compare(line.k, lines[line_ind].k * p, lines[line_ind].k * (2 - p)):
-                        is_necessary_line = True
-                        break
-            if is_necessary_line:
-                line_ind += 1
-            else:
-                lines.pop(line_ind)
 
     def find_collinear_lines(self, p: float) -> tuple[list, list]:
         w = ((math.pi / 2) / self.area ** 0.25)
-        t = p * w
-        # p = 0.8
+        lim_angle = 4
         collinear_list: list = []
         used_lines: list = []
         colors_list: list = []
         # cnt = 0
         for line_ind, line in enumerate(self.lines):
-            left_border = bisect.bisect_left(self.lines, line.k - 0.12, key=lambda x: x.k)
-            right_border = bisect.bisect_right(self.lines, line.k + 0.12, key=lambda x: x.k)
+            left_border = bisect_left(self.lines, line.angle - lim_angle, key=lambda x: x.angle)
+            right_border = bisect_right(self.lines, line.angle + lim_angle, key=lambda x: x.angle)
             if line_ind not in used_lines:
                 collinear_list.append([line])
                 used_lines.append(line_ind)
                 # -----------------------------------------------------------------------------------------------CHANGE
-                normal_delta: float = 7
+                normal_delta: float = 8
                 left_normal_min, left_normal_max = line.left_normal - normal_delta, line.left_normal + normal_delta
                 right_normal_min, right_normal_max = line.right_normal - normal_delta, line.right_normal + normal_delta
-                color = (random.randint(0, 255), random.randint(0, 255), random.randint(0, 255))
+                color = (randint(0, 255), randint(0, 255), randint(0, 255))
                 colors_list.append(color)
                 for next_line_ind, next_line in enumerate(self.lines[left_border:right_border + 1]):
                     if next_line_ind + left_border not in used_lines:
@@ -148,11 +128,9 @@ class LinesGroups:
 
             avg_x /= len(group)
             avg_y /= len(group)
-            # print(f'avg_x: {avg_x}, avg_y: {avg_y}')
             delta_xy: float = 0
             delta_x_square: float = 0
             for point in group:
-                # print(point, avg_x, avg_y)
                 delta_xy += (point[0] - avg_x) * (point[1] - avg_y)
                 delta_x_square += (point[0] - avg_x) ** 2
 
@@ -162,6 +140,6 @@ class LinesGroups:
             b: float = avg_y - k * avg_x
             x_list: list[int] = [round(min_x), round(max_x)]
             y_list: list[int] = [round(k * min_x + b), round(k * max_x + b)]
-            lines.append(Line(np.array([x_list[0], y_list[0], x_list[1], y_list[1]])))
-        # print(lines)
+            lines.append(Line())
+            lines[-1].set_by_raw_line(np.array([x_list[0], y_list[0], x_list[1], y_list[1]]))
         return lines

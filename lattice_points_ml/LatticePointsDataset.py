@@ -1,16 +1,12 @@
-import torch
 from PIL import Image
-from torchvision.io import read_image
-from torch.utils.data import Dataset, DataLoader
-from torchvision import datasets, transforms
-import pandas as pd
-import os
+from torch.utils.data import Dataset
+from pandas import read_csv
 
 
 class LatticePointsDataset(Dataset):
     def __init__(self, annotations_file, transform=None, target_transform=None):
         self.annot_filename = annotations_file
-        self.img_labels = pd.read_csv(annotations_file)
+        self.img_labels = read_csv(annotations_file)
         self.transform = transform
         self.target_transform = target_transform
 
