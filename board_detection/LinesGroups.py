@@ -45,7 +45,7 @@ class LinesGroups:
         gaussian = cv2.GaussianBlur(img, (self.blur_koef, self.blur_koef), 0)
         edges = cv2.Canny(gaussian, 20, 30, apertureSize=3)  # 20 30
         # raw_lines: np.ndarray = np.ndarray([])
-        raw_lines: np.ndarray = cv2.HoughLinesP(edges, 1, np.pi / 180, 100, minLineLength=7, maxLineGap=10)
+        raw_lines: np.ndarray = cv2.HoughLinesP(edges, 1, np.pi / 180, 85, minLineLength=7, maxLineGap=10)
         lines: list[Line] = []
         # print(type(raw_lines))
         if type(raw_lines) is not np.ndarray:

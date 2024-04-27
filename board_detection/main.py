@@ -23,8 +23,8 @@ def detect_photo():
 
 def detect_video():
     board_detect: ChessBoardDetecting = ChessBoardDetecting()
-    # cap = cv2.VideoCapture(1)
-    cap = cv2.VideoCapture('board_detection/source/video/video3.mp4')
+    cap = cv2.VideoCapture(1)
+    # cap = cv2.VideoCapture('board_detection/source/video/video3.mp4')
     # if cap.isOpened() == False:
     #     print("Error opening video stream or file")
     skip_frame: int = 0
@@ -38,10 +38,10 @@ def detect_video():
         board_detect.set_image(frame)
         if frame_num == 0:
             board_detect.detect_board()
-            # board_detect.show_lines(False)
+            board_detect.show_lines(False)
             # # board_detect.show_all_points(False, 'img')
             # board_detect.show_lattice_points(False, 'img1')
-            board_detect.show_grupped_points(False, 'img1')
+            board_detect.show_grupped_points(False, 'img123')
         frame_num += 1
         if frame_num >= skip_frame:
             frame_num = 0

@@ -31,11 +31,14 @@ class Line:
         self.b = cord[1] - k * cord[0]
 
         x1, y1 = 2, round(self.k * 2 + self.b)
-        if not 1 < y1 < Line.shape[1]:
+        x2, y2 = Line.shape[0] - 2, round(self.k * (Line.shape[0] - 2) + self.b)
+        # print(f'k = {self.k}, b = {self.b}, cord = {cord}')
+        # print(f'1) {x1}, {y1}; {x2}, {y2}')
+        if not 0 <= y1 < Line.shape[1]:
             y1, x1 = 2, round((2-self.b) / self.k)
-        x2, y2 = Line.shape[0]-2, round(self.k * (Line.shape[0]-2) + self.b)
-        if not 1 < y2 < Line.shape[1]:
+        if not 0 <= y2 < Line.shape[1]:
             y2, x2 = Line.shape[1]-2, round((Line.shape[1]-2-self.b) / self.k)
+        # print(f'1) {x1}, {y1}; {x2}, {y2}\n')
         self.p1 = np.array([x1, y1])
         self.p2 = np.array([x2, y2])
 
