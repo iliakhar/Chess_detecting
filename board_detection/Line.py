@@ -21,10 +21,27 @@ class Line:
         x1, y1, x2, y2 = raw_line
         self.p1 = np.array([x1, y1])
         self.p2 = np.array([x2, y2])
-        self.line_len = self.norm(self.p2 - self.p1)
         self.k, self.b = get_line_solution([self.p1, self.p2])
+        self.p1 = np.array(self.check_point_out(x1, y1))
+        self.p2 = np.array(self.check_point_out(x2, y2))
+        self.line_len = self.norm(self.p2 - self.p1)
         self.angle = atan(self.k) * 180 / pi
         self.find_normals()
+
+    def check_point_out(self, x, y):
+        if x < 0:
+            x = 2
+            y = round(self.k * x + self.b)
+        elif x >= Line.shape[1]:
+            x = Line.shape[1] - 2
+            y = round(self.k * x + self.b)
+        if y < 0:
+            y = 2
+            x = round((y - self.b)/self.k)
+        elif x >= Line.shape[1]:
+            y = Line.shape[0] - 2
+            x = round((y - self.b)/self.k)
+        return x, y
 
     def set_by_point_k(self, cord: tuple[int, int], k: float):
         self.k = k
@@ -34,13 +51,9 @@ class Line:
         x2, y2 = Line.shape[0] - 2, round(self.k * (Line.shape[0] - 2) + self.b)
         # print(f'k = {self.k}, b = {self.b}, cord = {cord}')
         # print(f'1) {x1}, {y1}; {x2}, {y2}')
-        if not 0 <= y1 < Line.shape[1]:
-            y1, x1 = 2, round((2-self.b) / self.k)
-        if not 0 <= y2 < Line.shape[1]:
-            y2, x2 = Line.shape[1]-2, round((Line.shape[1]-2-self.b) / self.k)
         # print(f'1) {x1}, {y1}; {x2}, {y2}\n')
-        self.p1 = np.array([x1, y1])
-        self.p2 = np.array([x2, y2])
+        self.p1 = np.array(self.check_point_out(x1, y1))
+        self.p2 = np.array(self.check_point_out(x2, y2))
 
         self.angle = atan(self.k) * 180 / pi
         self.find_normals()

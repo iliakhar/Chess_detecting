@@ -25,9 +25,9 @@ def resave_to_gray_image(folder_from: str, folder_to: str):
 
 
 def main():
-    # anot_path: str = getcwd() + '\\lattice_points_train_points_annot_3.csv'
-    # folder_path = getcwd() + '\\lattice_points_ml\\latchess21\\photos\\'
-    # create_annotation(anot_path, folder_path, ['no_points_train', 'ok_points_train', 'border_points_train'])
+    anot_path: str = getcwd() + '\\lattice_points_train_points_annot_3.csv'
+    folder_path = getcwd() + '\\lattice_points_ml\\latchess21\\photos\\'
+    create_annotation(anot_path, folder_path, ['no_points_train', 'ok_points_train', 'border_points_train'])
 
     # annot_train_filename = 'lattice_points_train_annot.csv'
     annot_train_filename = 'lattice_points_train_points_annot_3.csv'
@@ -36,7 +36,7 @@ def main():
     model: ConvNet = ConvNet()
     model = model.to(model.device)
     # model.load_model(getcwd() + '\\lattice_points_ml\\model\\model_10.pt')
-    model.train_model(500, annot_train_filename, 'model_21_500.pt', 60)
+    model.train_model(500, annot_train_filename, 'model_30_500.pt', 60)
     # model.test_model(annot_test_filename)
     # model.predict_model(cv2.imread(os.getcwd() + '\\lattice_points_ml\\latchess21\\ok_test\\65100926823770869_270.jpg', cv2.IMREAD_GRAYSCALE))
 

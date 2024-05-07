@@ -18,17 +18,29 @@ class ConvNet(nn.Module):
         self.criterion = nn.CrossEntropyLoss()
         self.is_predict = False
 
-
-        #21x21x1
-        self.layer1 = nn.Sequential(nn.Conv2d(1, 30, kernel_size=3, stride=1, padding=1),
+        # 21x21x1
+        self.layer1 = nn.Sequential(nn.Conv2d(1, 40, kernel_size=3, stride=1, padding=1),
                                     nn.ReLU(), nn.MaxPool2d(kernel_size=2, stride=2, ceil_mode=True))
-        #11x11x12
-        self.layer2 = nn.Sequential(nn.Conv2d(30, 60, kernel_size=5, stride=1, padding=2),
+        # 11x11x12
+        self.layer2 = nn.Sequential(nn.Conv2d(40, 80, kernel_size=5, stride=1, padding=2),
                                     nn.ReLU(), nn.MaxPool2d(kernel_size=2, stride=2, ceil_mode=True))
-        #6x6x24
+        # 6x6x24
         self.drop_out = nn.Dropout(p=0.5)
-        self.fc1 = nn.Linear(6 * 6 * 60, 900)
-        self.fc2 = nn.Linear(900, 3)
+        self.fc1 = nn.Linear(6 * 6 * 80, 1000)
+        self.fc2 = nn.Linear(1000, 3)
+
+        # -----------------------------------------------------------------
+
+        # #21x21x1
+        # self.layer1 = nn.Sequential(nn.Conv2d(1, 30, kernel_size=3, stride=1, padding=1),
+        #                             nn.ReLU(), nn.MaxPool2d(kernel_size=2, stride=2, ceil_mode=True))
+        # #11x11x12
+        # self.layer2 = nn.Sequential(nn.Conv2d(30, 60, kernel_size=5, stride=1, padding=2),
+        #                             nn.ReLU(), nn.MaxPool2d(kernel_size=2, stride=2, ceil_mode=True))
+        # #6x6x24
+        # self.drop_out = nn.Dropout(p=0.5)
+        # self.fc1 = nn.Linear(6 * 6 * 60, 900)
+        # self.fc2 = nn.Linear(900, 3)
 
         #-----------------------------------------------------------------
 

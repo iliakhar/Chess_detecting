@@ -21,15 +21,17 @@ def resizing(img, new_width=None, new_height=None, interp=cv2.INTER_LINEAR):
     return cv2.resize(img, dimension, interpolation=interp)
 
 
-def draw_lines(img: np.ndarray, grouped_lines: list[list[Line]], colors: list[tuple], is_wait: bool = True) -> None:
+def draw_lines(img: np.ndarray, grouped_lines: list[list[Line]], colors: list[tuple], is_wait: bool = True,
+               img_name='im') -> None:
     tmp_img = img.copy()
     for group_ind, group in enumerate(grouped_lines):
         for line in group:
             x1, y1 = line.p1
             x2, y2 = line.p2
-            cv2.line(tmp_img, (x1, y1), (x2, y2), colors[group_ind % len(colors)], 2)
+            if 0 < x1 < img.shape[1] and 0 < y1 < img.shape[0]:
+                cv2.line(tmp_img, (x1, y1), (x2, y2), colors[group_ind % len(colors)], 2)
             # cv2.line(tmp_img, (x1, y1), (x2, y2), colors[ind], 2)
-    cv2.imshow('image', tmp_img)
+    cv2.imshow(img_name, tmp_img)
     if is_wait:
         cv2.waitKey(0)
         cv2.destroyAllWindows()
