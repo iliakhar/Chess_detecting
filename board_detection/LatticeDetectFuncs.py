@@ -2,12 +2,15 @@ from math import ceil
 
 from board_detection.LinesGroups import *
 
-def get_lines_with_count(tmp_lattice_points: list[Point], lines: LinesGroups):
+
+def get_lines_with_count(img, tmp_lattice_points: list[Point], lines: LinesGroups):
     horiz_lines: list = []
     vert_lines: list = []
     horiz_dict: dict[int: int] = {}
     vert_dict: dict[int: int] = {}
     for point in tmp_lattice_points:
+        # draw_points(img, [[point]], [(180, 130, 70)], is_wait=False)
+        # draw_lines(img, [[lines.result_lines[point.line_ind_h]], [lines.result_lines[point.line_ind_v]]], [(22, 173, 61), (180, 130, 70)])
         if point.line_ind_h in horiz_dict:
             horiz_lines[horiz_dict[point.line_ind_h]][1] += 1
         else:
@@ -23,119 +26,165 @@ def get_lines_with_count(tmp_lattice_points: list[Point], lines: LinesGroups):
 
 def get_border_cord_and_angle(img, points: list[Point], lines: list[Line], line_type: int):
     color1: tuple[int, int, int] = (22, 173, 61)
+    # draw_lines(img, [lines], [color1])
     # draw_points(img, [points], [color1])
+    # for point in points:
+    #     draw_points(img, [[point]], [color1])
     if len(points) == 0:
         return None
-    dif_list, ratio_list, mean_ratio = get_dif_list_and_ratio(None, points)
+    dif_list, _, mean_ratio = get_dif_list_and_ratio(None, points)
+
     for ind in range(len(mean_ratio)):
         if mean_ratio[ind] == 0:
             mean_ratio[ind] = 1
-    # result_dif = list(get_start_dif(dif_list, ratio_list))
-    result_dif = [0,0,0]
+    result_dif = [0, 0, 0]
     if len(dif_list) != 0:
         if len(dif_list[0]) != 0:
+            mean_dif = 0
             for dif in dif_list:
+                mean_dif += dif[2]
+            mean_dif /= len(dif_list)
+            min_dif, max_dif = mean_dif / 1.4, mean_dif * 1.4
+            dif_len = 0
+            for dif in dif_list:
+                if not (min_dif < dif[2] < max_dif):
+                    continue
+                dif_len += 1
                 for i in range(3):
                     result_dif[i] += dif[i]
-            for i in range(3):
-                result_dif[i] /= len(dif_list)
-    # mean_angle_dif: float = 0
-    # center_point_ind = len(points) // 2
-    # prev_angle = lines[points[center_point_ind].line_ind_v].angle if line_type == 0 else lines[points[center_point_ind].line_ind_h].angle
-    # result_angle = prev_angle
-    # print(result_angle)
-    # for pnt in points[1:]:
-    #     angle = lines[pnt.line_ind_v].angle if line_type == 0 else lines[pnt.line_ind_h].angle
-    #     angle_dif = angle - prev_angle
-    #     if angle_dif > 90:
-    #         angle_dif -= 180
-    #     if angle_dif < -90:
-    #         angle_dif += 180
-    #     mean_angle_dif += angle_dif
-    #     prev_angle = angle
-    # mean_angle_dif /= len(points)
+            if dif_len != 0:
+                for i in range(3):
+                    result_dif[i] /= dif_len
+    mean_angle_dif: float = 0
+    center_point_ind = ceil(len(points) / 2)
+    if center_point_ind >= len(points):
+        center_point_ind -= 1
+    if line_type == 0:
+        prev_angle = lines[points[0].line_ind_v].angle
+        result_angle = lines[points[center_point_ind].line_ind_v].angle
+    else:
+        prev_angle = lines[points[0].line_ind_h].angle
+        result_angle = lines[points[center_point_ind].line_ind_h].angle
+    for pnt in points[1:]:
+        angle = lines[pnt.line_ind_v].angle if line_type == 0 else lines[pnt.line_ind_h].angle
+        angle_dif = angle - prev_angle
+        angle_dif = normalize_angle(angle_dif)
+        mean_angle_dif += angle_dif
+        prev_angle = angle
+    mean_angle_dif /= len(points)
     cur_dif = result_dif.copy()
     number_of_cells = 4
     for i in range(number_of_cells - 1):
         for ind in range(3):
             cur_dif[ind] /= mean_ratio[ind]
             result_dif[ind] += cur_dif[ind]
-    #     result_angle += mean_angle_dif
-    # if result_angle > 90:
-    #     result_angle -= 180
-    # elif result_angle < -90:
-    #     result_angle += 180
+        result_angle += mean_angle_dif
+    result_angle = normalize_angle(result_angle)
     x, y = result_dif[0], result_dif[1]
-
-    # print(f'len: {result_dif}, x: {x}, y: {y}    |   angle: {result_angle}, anlge dif: {mean_angle_dif}')
-    # k = math.tan(result_angle * math.pi / 180)
-    k = lines[points[-1].line_ind_v].k if line_type == 0 else lines[points[-1].line_ind_h].k
+    k = math.tan(result_angle * math.pi / 180)
+    # k = lines[points[-1].line_ind_v].k if line_type == 0 else lines[points[-1].line_ind_h].k
     x, y = round(x), round(y)
-    return x, y, k
+    # print(f'ratio: {mean_ratio}')
+    return x, y, k, mean_ratio[2]
 
 
 ######################################
-def exclude_the_wrong_lines(img, lines_lst: list, lines_type: int, angle_lim=5) -> list[Line]:
-    lines_lst = delete_border_lines(lines_lst, lines_type)
+def exclude_the_wrong_lines(img, lines_lst: list, lines_type: int, angle_lim=5, dif_lim=20) -> list[Line]:
+    # ln = [val[0] for val in lines_lst]
+    # draw_lines(img, [ln], [(22, 173, 61), (180, 130, 70)])
+    lines_lst = delete_lines_with_one_point(lines_lst)
+    # print(lines_type)
+    # draw_lines(img, [lines_lst], [(22, 173, 61), (180, 130, 70)])
     lines_lst = sorted(list(lines_lst), key=lambda x: x.angle)
-    l1 = lines_lst.copy()
-    color1: tuple[int, int, int] = (22, 173, 61)
-    color2: tuple[int, int, int] = (180, 130, 70)
     tmp_lines: list[list[Line]] = [[]]
     if len(lines_lst) != 0:
         lines_lst.append(lines_lst[-1])
     for ind in range(len(lines_lst) - 1):
         delta = lines_lst[ind + 1].angle - lines_lst[ind].angle
+        # print(delta)
         if delta < angle_lim:
             tmp_lines[-1].append(lines_lst[ind])
         else:
             tmp_lines[-1].append(lines_lst[ind])
             tmp_lines.append([])
+        # draw_lines(img, [[lines_lst[ind + 1]], [lines_lst[ind]]], [(22, 173, 61), (180, 130, 70)])
     if len(tmp_lines) > 1:
         if 180 - (tmp_lines[-1][-1].angle - tmp_lines[0][0].angle) < angle_lim:
             tmp_lines[0] += tmp_lines[-1]
             tmp_lines = tmp_lines[:-1]
-    # print(len(tmp_lines))
-    # colors = [(randint(0, 255), randint(0, 255), randint(0, 255)) for _ in range(len(tmp_lines))]
-    # draw_lines(img, tmp_lines, colors)
     lines = max(tmp_lines, key=lambda x: len(x))
+    fix_cord = 100
     if lines_type == 0:
-        lines = sorted(lines, key=lambda x: x.p1[0])
+        coords = [(fix_cord-ln.b)/ln.k for ln in lines]
     else:
-        lines = sorted(lines, key=lambda x: x.p1[1])
+        coords = [ln.k*fix_cord+ln.b for ln in lines]
     ind = 0
+    lines_and_cord = list(zip(lines, coords))
+    if len(lines_and_cord) != 0:
+        lines_and_cord.sort(key=lambda x: x[1])
+        lines, _ = list(zip(*lines_and_cord))
+        lines = list(lines)
+    # print(f'[{img.shape[1]*0.2}, {img.shape[1]*0.8}]  ,  [{img.shape[0]*0.2}, {img.shape[0]*0.8}]')
     while ind < len(lines) - 1:
-
-        dif_l = abs(lines[ind].left_normal - lines[ind + 1].left_normal)
-        dif_r = abs(lines[ind].right_normal - lines[ind + 1].right_normal)
-        if dif_l < 10 and dif_r < 10:
-            lines.pop(ind)
+        diff = abs(lines_and_cord[ind][1] - lines_and_cord[ind+1][1])
+        # diff = get_lines_dif(lines[ind], lines[ind + 1], lines_type)
+        cords = get_intersection_point(lines[ind], lines[ind + 1])
+        if cords is None:
+            cords = [-1, -1]
+            cords = [5000, 5000]
+        # print(diff, cords, lines[ind].line_len)
+        # print(lines[ind])
+        # draw_lines(img, [[lines[ind]], [lines[ind+1]]], [(22, 173, 61), (180, 130, 70)])
+        if (diff < dif_lim) or (img.shape[1]*0.2<cords[0]<img.shape[1]*0.8 and img.shape[0]*0.2<cords[-1]<img.shape[0]*0.8):
+            # print('delete')
+            if ind != 0:
+                dif1 = abs(normalize_angle(lines[ind].angle - lines[ind-1].angle))
+                dif2 = abs(normalize_angle(lines[ind+1].angle - lines[ind - 1].angle))
+                if dif1 > dif2:
+                    lines.pop(ind)
+                    lines_and_cord.pop(ind)
+                else:
+                    lines.pop(ind+1)
+                    lines_and_cord.pop(ind+1)
+            else:
+                lines.pop(ind)
+                lines_and_cord.pop(ind)
         else:
             ind += 1
     if len(lines) > 1:
-        dif_l = abs(lines[0].left_normal - lines[-1].left_normal)
-        dif_r = abs(lines[0].right_normal - lines[-1].right_normal)
-        if dif_l < 15 and dif_r < 15:
+        diff = abs(lines_and_cord[0][1] - lines_and_cord[-1][1])
+        # diff = get_lines_dif(lines[0], lines[-1], lines_type)
+        if diff < dif_lim:
             lines.pop(0)
+    # if lines_type == 0:
+    #     print('vert')
+    # else:
+    #     print('horiz')
+    # for ln in lines:
+    #     print(f'line: {ln}')
+    # draw_lines(img, [lines], [(22, 173, 61)])
     return lines
 
 
-def delete_border_lines(lines_lst: list, lines_type: int):
-    # if lines_type == 0:  # vert
-    #     lines_lst = sorted(lines_lst, key=lambda x: x[0].p1[0])
-    # else:  # horiz
-    #     lines_lst = sorted(lines_lst, key=lambda x: x[0].p1[1])
-    #
-    # while len(lines_lst) > 0:
+# def get_lines_dif(line1: Line, line2: Line, line_type: int) -> int:
+#     if line_type == 1:
+#         x1 = x2 = (line1.p1[0] + line1.p2[0]) / 2
+#         y1 = line1.k * x1 + line1.b
+#         y2 = line2.k * x2 + line2.b
+#     else:
+#         y1 = y2 = (line1.p1[1] + line1.p2[1]) / 2
+#         x1 = (y1 - line1.b) / line1.k
+#         x2 = (y2 - line2.b) / line2.k
+#     return ((x1 - x2) ** 2 + (y1 - y2) ** 2) ** 0.5
+
+
+def delete_lines_with_one_point(lines_lst: list):
+    # ind = 0
+    # while ind < len(lines_lst):
     #     if lines_lst[0][1] < 2:
-    #         lines_lst.pop(0)
+    #         lines_lst.pop(ind)
     #     else:
-    #         break
-    # while len(lines_lst) > 0:
-    #     if lines_lst[-1][1] < 2:
-    #         lines_lst.pop(-1)
-    #     else:
-    #         break
+    #         ind += 1
     return [val[0] for val in lines_lst]
 
 
@@ -188,7 +237,8 @@ def get_point_neighborhood(img: np.ndarray, point: Point) -> np.ndarray:
     return cv2.Canny(thresh1, 20, 30, apertureSize=3)
 
 
-def find_intersection_lattice_points(img, h_lines: list[Line], v_lines: list[Line], shape: tuple, is_out: bool = False) -> list[Point]:
+def find_intersection_lattice_points(img, h_lines: list[Line], v_lines: list[Line], shape: tuple,
+                                     is_out: bool = False) -> list[Point]:
     points_list = []
     for h_ind, h_ln in enumerate(h_lines):
         for v_ind, v_ln in enumerate(v_lines):

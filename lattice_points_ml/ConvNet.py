@@ -11,20 +11,19 @@ from lattice_points_ml.LatticePointsDataset import LatticePointsDataset
 class ConvNet(nn.Module):
     def __init__(self):
         super(ConvNet, self).__init__()
-        # self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         self.device = 'cpu'
+        # self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         self.learning_rate = 0.0001
-        self.transform = transforms.Compose([transforms.ToTensor(),])
+        self.transform = transforms.Compose([transforms.ToTensor(), ])
         self.criterion = nn.CrossEntropyLoss()
         self.is_predict = False
 
-        # 21x21x1
         self.layer1 = nn.Sequential(nn.Conv2d(1, 40, kernel_size=3, stride=1, padding=1),
                                     nn.ReLU(), nn.MaxPool2d(kernel_size=2, stride=2, ceil_mode=True))
-        # 11x11x12
+
         self.layer2 = nn.Sequential(nn.Conv2d(40, 80, kernel_size=5, stride=1, padding=2),
                                     nn.ReLU(), nn.MaxPool2d(kernel_size=2, stride=2, ceil_mode=True))
-        # 6x6x24
+
         self.drop_out = nn.Dropout(p=0.5)
         self.fc1 = nn.Linear(6 * 6 * 80, 1000)
         self.fc2 = nn.Linear(1000, 3)
@@ -68,8 +67,9 @@ class ConvNet(nn.Module):
         # self.fc1 = nn.Linear(6 * 6 * 40, 800)
         # self.fc2 = nn.Linear(800, 2)
 
-
         self.optimizer = torch.optim.Adam(self.parameters(), lr=self.learning_rate)
+
+
 
     def forward(self, x):
         out = self.layer1(x)

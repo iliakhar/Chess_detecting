@@ -19,13 +19,15 @@ class Line:
 
     def set_by_raw_line(self, raw_line: np.array):
         x1, y1, x2, y2 = raw_line
+        if x1 == x2:
+            x2 += 1
         self.p1 = np.array([x1, y1])
         self.p2 = np.array([x2, y2])
         self.k, self.b = get_line_solution([self.p1, self.p2])
+        self.angle = atan(self.k) * 180 / pi
         self.p1 = np.array(self.check_point_out(x1, y1))
         self.p2 = np.array(self.check_point_out(x2, y2))
         self.line_len = self.norm(self.p2 - self.p1)
-        self.angle = atan(self.k) * 180 / pi
         self.find_normals()
 
     def check_point_out(self, x, y):
@@ -77,7 +79,7 @@ def get_line_solution(points: list[np.array, np.array]) -> tuple[float, float]:
     return k, b
 
 
-def get_intersection_point(line1: Line, line2: Line) -> tuple[int, int]:
+def get_intersection_point(line1: Line, line2: Line) -> tuple[int, int] | None:
     if line1.k == line2.k:
         return None
     x: float = (line2.b - line1.b) / (line1.k - line2.k)
