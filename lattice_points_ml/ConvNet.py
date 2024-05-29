@@ -11,22 +11,39 @@ from lattice_points_ml.LatticePointsDataset import LatticePointsDataset
 class ConvNet(nn.Module):
     def __init__(self):
         super(ConvNet, self).__init__()
-        self.device = 'cpu'
-        # self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        # self.device = 'cpu'
+        self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         self.learning_rate = 0.0001
         self.transform = transforms.Compose([transforms.ToTensor(), ])
         self.criterion = nn.CrossEntropyLoss()
         self.is_predict = False
 
-        self.layer1 = nn.Sequential(nn.Conv2d(1, 40, kernel_size=3, stride=1, padding=1),
+        self.layer1 = nn.Sequential(nn.Conv2d(1, 30, kernel_size=3, stride=1, padding=1),
+                                    nn.ReLU())
+
+        self.layer2 = nn.Sequential(nn.Conv2d(30, 50, kernel_size=3, stride=1, padding=1),
                                     nn.ReLU(), nn.MaxPool2d(kernel_size=2, stride=2, ceil_mode=True))
 
-        self.layer2 = nn.Sequential(nn.Conv2d(40, 80, kernel_size=5, stride=1, padding=2),
+        self.layer3 = nn.Sequential(nn.Conv2d(50, 80, kernel_size=3, stride=1, padding=1),
                                     nn.ReLU(), nn.MaxPool2d(kernel_size=2, stride=2, ceil_mode=True))
 
         self.drop_out = nn.Dropout(p=0.5)
-        self.fc1 = nn.Linear(6 * 6 * 80, 1000)
-        self.fc2 = nn.Linear(1000, 3)
+        self.fc1 = nn.Linear(6 * 6 * 80, 500)
+        self.fc2 = nn.Linear(500, 300)
+        self.fc3 = nn.Linear(300, 3)
+
+        # -----------------------------------------------------------------
+
+
+        # self.layer1 = nn.Sequential(nn.Conv2d(1, 40, kernel_size=3, stride=1, padding=1),
+        #                             nn.ReLU(), nn.MaxPool2d(kernel_size=2, stride=2, ceil_mode=True))
+        #
+        # self.layer2 = nn.Sequential(nn.Conv2d(40, 80, kernel_size=5, stride=1, padding=2),
+        #                             nn.ReLU(), nn.MaxPool2d(kernel_size=2, stride=2, ceil_mode=True))
+        #
+        # self.drop_out = nn.Dropout(p=0.5)
+        # self.fc1 = nn.Linear(6 * 6 * 80, 1000)
+        # self.fc2 = nn.Linear(1000, 3)
 
         # -----------------------------------------------------------------
 
@@ -69,11 +86,10 @@ class ConvNet(nn.Module):
 
         self.optimizer = torch.optim.Adam(self.parameters(), lr=self.learning_rate)
 
-
-
     def forward(self, x):
         out = self.layer1(x)
         out = self.layer2(out)
+        out = self.layer3(out)
 
         if self.is_predict:
             out = out.reshape(1, -1)
@@ -83,13 +99,15 @@ class ConvNet(nn.Module):
         out = self.drop_out(out)
         out = self.fc1(out)
         out = self.fc2(out)
+        out = self.fc3(out)
         # out = self.sm3(out)
         return out
 
     def load_model(self, filename: str):
         self.load_state_dict(torch.load(filename))
 
-    def train_model(self, num_epochs: int, annot_train_filename: str, model_filename: str = 'model.pt', batch_size: int = 30):
+    def train_model(self, num_epochs: int, annot_train_filename: str, model_filename: str = 'model.pt',
+                    batch_size: int = 30):
         train_dataset = LatticePointsDataset(annot_train_filename, self.transform)
         train_loader = DataLoader(dataset=train_dataset, batch_size=batch_size, shuffle=True)
         train_loader.device = self.device
@@ -137,7 +155,8 @@ class ConvNet(nn.Module):
                 total += labels.size(0)
                 correct += (predicted == labels).sum().item()
 
-            print(f'Test Accuracy of the model on the {len(test_loader)*batch_size} test images: {(correct / total) * 100}')
+            print(
+                f'Test Accuracy of the model on the {len(test_loader) * batch_size} test images: {(correct / total) * 100}')
 
     def predict_model(self, img: np.ndarray):
         self.is_predict = True
