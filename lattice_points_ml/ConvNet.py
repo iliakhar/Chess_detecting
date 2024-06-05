@@ -12,25 +12,68 @@ class ConvNet(nn.Module):
     def __init__(self):
         super(ConvNet, self).__init__()
         # self.device = 'cpu'
+
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-        self.learning_rate = 0.0001
+        self.learning_rate = 0.00005
         self.transform = transforms.Compose([transforms.ToTensor(), ])
         self.criterion = nn.CrossEntropyLoss()
         self.is_predict = False
 
-        self.layer1 = nn.Sequential(nn.Conv2d(1, 30, kernel_size=3, stride=1, padding=1),
+        # self.layer1 = nn.Sequential(nn.Conv2d(1, 40, kernel_size=3, stride=1, padding=1),
+        #                             nn.ReLU(), nn.MaxPool2d(kernel_size=2, stride=2, ceil_mode=True))
+        #
+        # self.layer2 = nn.Sequential(nn.Conv2d(40, 80, kernel_size=3, stride=1, padding=1),
+        #                             nn.ReLU(), nn.MaxPool2d(kernel_size=2, stride=2, ceil_mode=True))
+        #
+        # self.drop_out = nn.Dropout(p=0.5)
+        # self.fc1 = nn.Linear(6 * 6 * 80, 800)
+        # self.fc2 = nn.Linear(800, 3)
+
+
+
+        # self.layer1 = nn.Sequential(nn.Conv2d(1, 35, kernel_size=3, stride=1, padding=1),
+        #                             nn.ReLU(), nn.MaxPool2d(kernel_size=2, stride=2, ceil_mode=True))
+        #
+        # self.layer2 = nn.Sequential(nn.Conv2d(35, 40, kernel_size=3, stride=1, padding=1),
+        #                             nn.ReLU(), nn.MaxPool2d(kernel_size=2, stride=2, ceil_mode=True))
+        #
+        # self.drop_out = nn.Dropout(p=0.5)
+        # self.fc1 = nn.Linear(6 * 6 * 40, 800)
+        # self.fc2 = nn.Linear(800, 3)
+
+        # -----------------------------------------------------------------
+
+
+
+        self.layer1 = nn.Sequential(nn.Conv2d(1, 40, kernel_size=3, stride=1, padding=1),
                                     nn.ReLU())
 
-        self.layer2 = nn.Sequential(nn.Conv2d(30, 50, kernel_size=3, stride=1, padding=1),
+        self.layer2 = nn.Sequential(nn.Conv2d(40, 80, kernel_size=3, stride=1, padding=1),
                                     nn.ReLU(), nn.MaxPool2d(kernel_size=2, stride=2, ceil_mode=True))
 
-        self.layer3 = nn.Sequential(nn.Conv2d(50, 80, kernel_size=3, stride=1, padding=1),
+        self.layer3 = nn.Sequential(nn.Conv2d(80, 120, kernel_size=3, stride=1, padding=1),
                                     nn.ReLU(), nn.MaxPool2d(kernel_size=2, stride=2, ceil_mode=True))
 
         self.drop_out = nn.Dropout(p=0.5)
-        self.fc1 = nn.Linear(6 * 6 * 80, 500)
-        self.fc2 = nn.Linear(500, 300)
-        self.fc3 = nn.Linear(300, 3)
+        self.fc1 = nn.Linear(6 * 6 * 120, 600)
+        self.fc2 = nn.Linear(600, 800)
+        self.fc3 = nn.Linear(800, 3)
+
+        # -----------------------------------------------------------------
+
+        # self.layer1 = nn.Sequential(nn.Conv2d(1, 30, kernel_size=3, stride=1, padding=1),
+        #                             nn.ReLU())
+        #
+        # self.layer2 = nn.Sequential(nn.Conv2d(30, 50, kernel_size=3, stride=1, padding=1),
+        #                             nn.ReLU(), nn.MaxPool2d(kernel_size=2, stride=2, ceil_mode=True))
+        #
+        # self.layer3 = nn.Sequential(nn.Conv2d(50, 80, kernel_size=3, stride=1, padding=1),
+        #                             nn.ReLU(), nn.MaxPool2d(kernel_size=2, stride=2, ceil_mode=True))
+        #
+        # self.drop_out = nn.Dropout(p=0.5)
+        # self.fc1 = nn.Linear(6 * 6 * 80, 500)
+        # self.fc2 = nn.Linear(500, 300)
+        # self.fc3 = nn.Linear(300, 3)
 
         # -----------------------------------------------------------------
 
@@ -163,5 +206,7 @@ class ConvNet(nn.Module):
         tensor = self.transform(img).to(self.device)
         outputs = self.forward(tensor)
         _, predicted = torch.max(outputs.data, 1)
+        # a = torch.nn.functional.softmax(input=outputs.data, dim=1)
+        # print(outputs.data, predicted, a)
         self.is_predict = False
         return predicted.to('cpu').tolist()[0]

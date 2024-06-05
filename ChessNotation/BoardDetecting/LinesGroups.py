@@ -47,17 +47,17 @@ class LinesGroups:
 
     def get_lines(self, img: np.ndarray) -> list[Line]:
         gaussian = cv2.GaussianBlur(img, (self.blur_koef, self.blur_koef), 0)
-        edges = cv2.Canny(gaussian, 150, 180, apertureSize=3)  # 90, 120 | 120, 160 | 180, 370 | 180, 220
+        edges = cv2.Canny(gaussian, 100, 140, apertureSize=3)  # 90, 120 | 120, 160 | 180, 370 | 180, 220
         # cv2.imshow('i', edges)
         # cv2.waitKey(0)
         # cv2.destroyAllWindows()
         raw_lines: np.ndarray = cv2.HoughLinesP(edges, 1, np.pi / 180, 70,
-                                                minLineLength=10, maxLineGap=15)
+                                                minLineLength=5, maxLineGap=15)
         lines: list[Line] = []
         if type(raw_lines) is not np.ndarray:
             return []
         for raw_line in raw_lines:
-            lines.append(Line())
+            lines.append(Line(False))
             lines[-1].set_by_raw_line(raw_line[0])
         lines.sort(key=lambda x: x.angle)
         # color = (22, 173, 61)
@@ -131,7 +131,7 @@ class LinesGroups:
 
     def group_lines_by_points(self, grouped_points: list[list[tuple[int, int]]]) -> list[Line]:
         lines: list[Line] = []
-        min_line_len = (self.area**0.5)*0.03
+        min_line_len = (self.area ** 0.5) * 0.03
         for group in grouped_points:
             # x_nd = np.array([x for x, _ in group])
             # y_nd = np.array([y for _, y in group])
@@ -140,13 +140,20 @@ class LinesGroups:
             # k, b = np.polyfit(x_nd, y_nd, 1)
             min(group, key=lambda x: x[0])
             k, b = self.get_k_b_by_points(group)
+            if k is None:
+                continue
             left_x, right_x = min(group, key=lambda x: x[0])[0], max(group, key=lambda x: x[0])[0]
-            left_y, right_y = k * left_x + b, k * right_x + b
-            line = Line()
+            left_y, right_y = min(group, key=lambda x: x[1])[1], max(group, key=lambda x: x[1])[1]
+            if abs(left_x - right_x) < abs(left_y - right_y):
+                left_x, right_x = (left_y - b) / k, (right_y - b) / k
+            else:
+                left_y, right_y = k * left_x + b, k * right_x + b
+            line = Line(False)
             line.set_by_raw_line(np.array([round(left_x), round(left_y), round(right_x), round(right_y)]))
             # points = [Point((round(x), round(y))) for x, y in group]
             # print(group)
             # print(f'len group: {len(group)}, len line: {line.line_len}, min line: {min_line_len}')
+            # print(left_x, left_y, right_x, right_y, '\n')
             # draw_points(self.img, [points], [(22, 173, 61)], is_wait=False)
             # draw_lines(self.img, [[line]], [(22, 173, 61)])
             if len(group) <= 1:
@@ -158,19 +165,19 @@ class LinesGroups:
 
     def get_k_b_by_points(self, points_group):
         avg_x, avg_y = 0.0, 0.0
-        min_x, max_x = math.inf, 0
         for point in points_group:
             avg_x += point[0]
             avg_y += point[1]
-            if point[0] < min_x:
-                min_x = point[0]
-            if point[0] > max_x:
-                max_x = point[0]
 
         avg_x /= len(points_group)
         avg_y /= len(points_group)
         delta_xy: float = 0
         delta_x_square: float = 0
+        if avg_x == points_group[0][0]:
+            k = 100
+            b = points_group[0][1] - k * points_group[0][0]
+            return k, b
+
         for point in points_group:
             delta_xy += (point[0] - avg_x) * (point[1] - avg_y)
             delta_x_square += (point[0] - avg_x) ** 2
@@ -179,4 +186,14 @@ class LinesGroups:
             delta_x_square = 0.00001
         k: float = delta_xy / delta_x_square
         b: float = avg_y - k * avg_x
+
+        # x_nd = np.array([x for x, _ in points_group])
+        # y_nd = np.array([y for _, y in points_group])
+        # if x_nd.size < 2:
+        #     return None, None
+        # k, b = np.polyfit(x_nd, y_nd, 1)
+        # print(k, b, ' | ', k1, b1, ' | ', len(x_nd), len(y_nd))
+        # print(x_nd, '\n', y_nd, '\n')
+        if k == 0:
+            k = 0.00001
         return k, b

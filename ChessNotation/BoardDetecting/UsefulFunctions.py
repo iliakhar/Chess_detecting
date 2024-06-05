@@ -21,6 +21,18 @@ def resizing(img, new_width=None, new_height=None, interp=cv2.INTER_LINEAR):
     return cv2.resize(img, dimension, interpolation=interp)
 
 
+def resizing_for_nn(img, h: int, w: int, new_width=None, new_height=None, interp=cv2.INTER_LINEAR):
+    if new_width is None and new_height is None:
+        return img
+    if new_width is None:
+        ratio = new_height / h
+        dimension = (int(w * ratio), new_height)
+    else:
+        ratio = new_width / w
+        dimension = (new_width, int(h * ratio))
+    return cv2.resize(img, dimension, interpolation=interp)
+
+
 def draw_lines(img: np.ndarray, grouped_lines: list[list[Line]], colors: list[tuple], is_wait: bool = True,
                img_name='im') -> None:
     tmp_img = img.copy()
@@ -54,8 +66,8 @@ def find_intersection_points(img, lines: list[Line]) -> list[Point]:
     lim_angle = 30
     points_set: set = set()
     lines.sort(key=lambda x: x.angle)
-    line_h = []
-    line_v = []
+    number_of_deg_90 = 0
+    number_of_deg_45 = 0
     for ind, line1 in enumerate(lines):
         left_border = bisect_left(lines, line1.angle - lim_angle, key=lambda x: x.angle)
         right_border = bisect_right(lines, line1.angle + lim_angle, key=lambda x: x.angle)
@@ -67,26 +79,43 @@ def find_intersection_points(img, lines: list[Line]) -> list[Point]:
                 if check_is_point_in_sections(point, line1, lines[line_ind]):
                     angle1 = lines[ind].angle
                     angle2 = lines[line_ind].angle
-                    # print(angle1, angle2)
-                    if abs(abs(angle1) - abs(angle2)) < 15:
-                        pnt = Point(point, ind, line_ind) if angle1 < angle2 else Point(point, line_ind, ind)
+                    # print(angle1, angle2, abs(abs(angle1) - abs(angle2)))
+                    if abs(abs(angle1) - abs(angle2)) < 23:
+                        number_of_deg_45 += 1
+                        pnt = Point(point, ind, line_ind)
                     else:
-                        pnt = Point(point, ind, line_ind) if abs(angle1) < abs(angle2) else Point(point, line_ind, ind)
-                    line_v.append(lines[pnt.line_ind_v])
-                    line_h.append(lines[pnt.line_ind_h])
+                        number_of_deg_90 += 1
+                        pnt = Point(point, ind, line_ind)
                     points_set.add(pnt)
-    # print(len(line_v), len(line_h))
+    # print(f'90: {number_of_deg_90}, 45: {number_of_deg_45}')
+    degree_type = 'diag' if number_of_deg_45 >= number_of_deg_90 else 'norm'
+    points = find_vert_and_horiz_lines(list(points_set), lines, degree_type)
     # for pnt in points_set:
-    #     print(lines[pnt.line_ind_h].angle, lines[pnt.line_ind_v].angle)
-    #     draw_lines(img, [[lines[pnt.line_ind_h]], [lines[pnt.line_ind_v]]], [(22, 173, 61), (180, 130, 70)])  # r b
-    # draw_lines(img, [line_h, line_v], [(22, 173, 61), (180, 130, 70)], is_wait=False)  # r b
-    # draw_lines(img, [line_h], [(22, 173, 61)])  # r b
-    # draw_lines(img, [line_v], [(22, 173, 61)])  # r b
-    return list(points_set)
+    #     angle1 = lines[pnt.line_ind_h].angle
+    #     angle2 = lines[pnt.line_ind_v].angle
+    #     print(angle1, angle2, abs(abs(angle1) - abs(angle2)))
+    #     draw_lines(img, [[lines[pnt.line_ind_h]], [lines[pnt.line_ind_v]]], [(22, 173, 61), (180, 130, 70)])  # g b
+    return points
+
+
+def find_vert_and_horiz_lines(points: list[Point], lines: list[Line], degree_type: str) -> list[Point]:
+    new_points: list[Point] = []
+    for pnt in points:
+        angle1 = lines[pnt.line_ind_v].angle
+        angle2 = lines[pnt.line_ind_h].angle
+        if degree_type == 'diag' and angle1 > angle2:
+            pnt.line_ind_v, pnt.line_ind_h = pnt.line_ind_h, pnt.line_ind_v
+        elif degree_type == 'norm' and abs(angle1) < abs(angle2):
+            pnt.line_ind_v, pnt.line_ind_h = pnt.line_ind_h, pnt.line_ind_v
+        new_points.append(pnt)
+    return new_points
+
 
 def check_is_point_in_sections(point: tuple[int, int], line1: Line, line2: Line) -> bool:
     return (check_range(point[0], line1.p1[0], line1.p2[0]) and check_range(point[1], line1.p1[1],
-            line1.p2[1]) and check_range(point[0], line2.p1[0], line2.p2[0])
+                                                                            line1.p2[1]) and check_range(point[0],
+                                                                                                         line2.p1[0],
+                                                                                                         line2.p2[0])
             and check_range(point[1], line2.p1[1], line2.p2[1]))
 
 

@@ -1,7 +1,4 @@
-import cv2
 import numpy as np
-
-from ChessNotation.BoardDetecting.Line import Line
 
 
 class ChessPiece:

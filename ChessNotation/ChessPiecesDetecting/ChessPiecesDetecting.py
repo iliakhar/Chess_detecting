@@ -1,13 +1,14 @@
 from bisect import bisect_left, bisect_right
+from collections import Counter
 
 import cv2
 import numpy as np
 from ultralytics import YOLO
 
 from ChessNotation.BoardDetecting.BoardGrid import Line
-from ChessNotation.BoardDetecting.UsefulFunctions import draw_lines
 from ChessNotation.BoardDetecting.BoardGrid import BoardGrid
 from ChessNotation.ChessPiecesDetecting.ChessPiece import ChessPiece
+from ChessNotation.ChessPiecesDetecting.ChessNotation import ChessNotation
 
 
 def resizing_for_nn(img, h: int, w: int, new_width=None, new_height=None, interp=cv2.INTER_LINEAR):
@@ -26,14 +27,28 @@ class ChessPiecesDetecting:
     def __init__(self):
         self.board_grid: BoardGrid | None = None
         self.img: np.ndarray | None = None
+        self.resized_img: np.ndarray | None = None
         self.chess_pieces: list[ChessPiece] = []
-        self.neural_img_shape: tuple[int, int] = (640, 640)
-        self.yolo_model = YOLO('ChessNotation\\ChessPiecesDetecting\\models\\yolo8obb_650.pt')
-        self.board: list[list[int]] = [[]]
+        self.neural_img_shape: tuple[int, int] = (736, 736)
+        self.yolo_model_pieces = YOLO('ChessNotation\\ChessPiecesDetecting\\models\\yolo8n_obb_3_100.pt')
+        self.boards_list: list[list[list[tuple[int, float]]]] = []
+        self.is_first_detecting: bool = True
+        self.number_of_transpose: int = 0
+        self.number_of_check_frames = 3
+        self.check_frames_num = 0
+        self.notation = ChessNotation()
 
     def set_image(self, img: np.ndarray):
         self.img = img
         ChessPiece.img_size = self.img.shape[:2]
+
+        x = round(self.neural_img_shape[1] * self.img.shape[1] / 1440)
+        y = round(self.neural_img_shape[0] * self.img.shape[0] / 1080)
+
+        if self.img.shape[0] > self.img.shape[1]:
+            self.resized_img = resizing_for_nn(self.img, y, x, new_height=self.neural_img_shape[0])
+        else:
+            self.resized_img = resizing_for_nn(self.img, y, x, new_width=self.neural_img_shape[1])
 
     def set_board_grid(self, board_grid: BoardGrid):
         self.board_grid = board_grid
@@ -41,13 +56,30 @@ class ChessPiecesDetecting:
         BoardGrid.change_const_grid_size(self.img.shape[:2])
 
     def find_chess_pieces_positions(self):
+        if self.board_grid is None:
+            return
+        if self.board_grid.is_hand_under_board:
+            return
         self.get_chess_pieces()
+        self._fix_position()
+
+    def _fix_position(self):
+        if self.board_grid is None:
+            return
+
+        if self.check_frames_num == self.number_of_check_frames - 1:
+            self.check_frames_num = 0
+            result_board = self._find_mean_board()
+            result_board = self._transpose_board(result_board)
+            self.notation.set_board(result_board)
+            self.boards_list = []
+            # print(self.notation)
+        else:
+            self.check_frames_num += 1
 
     def get_chess_pieces(self):
-        x = round(self.neural_img_shape[1] * self.img.shape[1] / 1440)
-        y = round(self.neural_img_shape[0] * self.img.shape[0] / 1080)
-        tmp_img = cv2.resize(self.img.copy(), (x, y), interpolation=cv2.INTER_LINEAR)
-        result = self.yolo_model(tmp_img, conf=0.5, verbose=False)[0]
+
+        result = self.yolo_model_pieces(self.resized_img, conf=0.5, verbose=False)[0]
 
         raw_box = result.obb.xyxyxyxyn.cpu().numpy()
         cls = result.obb.cls.cpu().numpy()
@@ -56,17 +88,53 @@ class ChessPiecesDetecting:
         self.chess_pieces = []
         for ind in range(len(cls)):
             self.chess_pieces.append(ChessPiece(raw_box[ind], cls[ind], probs[ind]))
-        self.find_chess_pieces_coord_on_board()
+        board = self.find_chess_pieces_coord_on_board()
+        # board = self._transpose_board(board)
+        self.boards_list.append(board)
+
+    def _find_mean_board(self):
+        mean_board: list[list[int]] = []
+        for row in range(8):
+            mean_board.append([])
+            for col in range(8):
+                pieces_list: list[int] = [self.boards_list[ind][row][col][0] for ind in range(len(self.boards_list))]
+                piece = get_most_frequent_item(pieces_list)
+                mean_board[-1].append(piece)
+        return mean_board
+
+    def _transpose_board(self, board):
+        if self.is_first_detecting:
+            self.number_of_transpose = self._get_number_of_transpose(board)
+            self.is_first_detecting = False
+        return np.rot90(board, k=self.number_of_transpose).tolist()
+
+    @staticmethod
+    def _get_number_of_transpose(board):
+        king_coord = (0, 0)
+        is_find = False
+        for row in range(8):
+            for col in range(8):
+                if board[row][col] == 1:  # k
+                    king_coord = (row, col)
+                    is_find = True
+                    break
+            if is_find:
+                break
+        border_dists = [(0, king_coord[0]), (1, 7 - king_coord[1]), (2, 7 - king_coord[0]), (3, king_coord[1])]
+        number_of_transpose = min(border_dists, key=lambda x: x[1])[0]
+        return number_of_transpose
 
     def find_chess_pieces_coord_on_board(self):
-        self.fill_empty_board()
-        # draw_lines(self.img, [BoardGrid.const_horiz_lines, BoardGrid.const_vert_lines], [(180, 130, 70), (22, 173, 61)])
+        board = self.get_empty_board()
         for chess_piece in self.chess_pieces:
             x, y = chess_piece.coord
             pos_x = bisect_left(BoardGrid.const_vert_lines, x, key=lambda ln: (y - ln.b) / ln.k)
             pos_y = bisect_left(BoardGrid.const_horiz_lines, y, key=lambda ln: ln.k * x + ln.b)
             if 0 < pos_x < 9 and 0 < pos_y < 9:
-                self.board[pos_y-1][pos_x-1] = chess_piece.class_num
+                if board[pos_y - 1][pos_x - 1][0] != -1 and board[pos_y - 1][pos_x - 1][1] > chess_piece.prob:
+                    continue
+                board[pos_y - 1][pos_x - 1] = (chess_piece.class_num, chess_piece.prob)
+        return board
 
     def draw_detect_chess_pieces(self, is_board_draw=True, is_piece_draw=True, is_wait=True):
         tmp_img = self.img.copy()
@@ -93,19 +161,14 @@ class ChessPiecesDetecting:
             cv2.waitKey(0)
             cv2.destroyAllWindows()
 
-    def fill_empty_board(self):
-        self.board = []
+    @staticmethod
+    def get_empty_board():
+        board = []
         for i in range(8):
-            self.board.append([-1 for _ in range(8)])
+            board.append([(-1, 0) for _ in range(8)])
+        return board
 
-    def __str__(self):
-        str_board: str = ''
-        for y in range(8):
-            even = int(y % 2 == 0)
-            for x in range(8):
-                if self.board[y][x] == -1:
-                    str_board += '⛂' if x % 2 == even else '⛀'
-                else:
-                    str_board += ChessPiece.classes[self.board[y][x]][2]
-            str_board += '\n'
-        return str_board
+
+def get_most_frequent_item(lst):
+    occurence_count = Counter(lst)
+    return occurence_count.most_common(1)[0][0]

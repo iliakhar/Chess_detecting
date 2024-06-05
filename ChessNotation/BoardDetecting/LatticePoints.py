@@ -16,7 +16,6 @@ class LatticePoints:
         self.horiz_lines: list[Line] = []
         self.border_points: list[Point] = []
         self.img = img
-        self.gray_img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
         self.color1: tuple[int, int, int] = (22, 173, 61)
         self.color2: tuple[int, int, int] = (180, 130, 70)
 
@@ -24,10 +23,14 @@ class LatticePoints:
 
     def get_lattice_points(self, intersection_points: list[Point], lines: LinesGroups):
         tmp_lattice_points: list[Point] = []
-
+        gray_img = cv2.cvtColor(self.img, cv2.COLOR_BGR2GRAY)
+        # draw_points(self.img, [intersection_points], [(0, 123, 255)], is_wait=False, img_name='zxcv')
         for point in intersection_points:
             x1, y1 = point.x - 10, point.y - 10
-            edges = self.gray_img[y1:y1 + 21, x1:x1 + 21]
+            edges = gray_img[y1:y1 + 21, x1:x1 + 21]
+            # edges1 = get_point_neighborhood(gray_img, point)
+            # edges2 = cv2.threshold(edges, 128, 255, cv2.THRESH_BINARY | cv2.THRESH_OTSU)[1]
+            # edges = get_point_neighborhood(gray_img, point)
             if type(edges) is np.ndarray:
                 if edges.shape == (21, 21):
                     predicted_val = self.conv_model.predict_model(edges)
@@ -35,7 +38,14 @@ class LatticePoints:
                         tmp_lattice_points.append(point)
                     if predicted_val == 2:
                         self.border_points.append(point)
-        # draw_points(self.img, [tmp_lattice_points], [(180, 130, 70)], is_wait=False)
+                    # cv2.imshow('imageq', edges)
+                    # cv2.imshow('imagew', edges1)
+                    # cv2.imshow('imagee', edges2)
+                    # draw_points(self.img, [[point]], [(180, 130, 70)], is_wait=True)
+        # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        # tmp_lattice_points += self.border_points
+
+        # draw_points(self.img, [tmp_lattice_points, self.border_points], [(180, 130, 70), (0, 123, 255)])
         # draw_lines(self.img, [lines.result_lines], [(22, 173, 61), (180, 130, 70)], img_name='123456')
         vert_lines_with_count, horiz_lines_with_count = get_lines_with_count(self.img, tmp_lattice_points, lines)
         self.vert_lines = exclude_the_wrong_lines(self.img, vert_lines_with_count, 0, 15, 10)
@@ -49,7 +59,7 @@ class LatticePoints:
         # draw_lines(self.img, [self.horiz_lines, self.vert_lines], [(22, 173, 61), (180, 130, 70)])
         self.lattice_points = tmp_lattice_points
         self.lattice_points = find_intersection_lattice_points(self.horiz_lines, self.vert_lines,
-                                                               self.gray_img.shape)
+                                                               self.img.shape)
 
         # self.lattice_points = self.fill_missing_points()
 
@@ -60,17 +70,17 @@ class LatticePoints:
         if len(self.lattice_points) == 0:
             return self.lattice_points
         line_ind = int(len(self.horiz_lines) / 2)
-        check_line_points = get_line_points(self.lattice_points, line_ind, 0)
-        self.vert_lines = self.get_extra_lines(check_line_points, line_ind, 0)
+        check_line_points = get_line_points(self.lattice_points, line_ind, 'vert')
+        self.vert_lines = self.get_extra_lines(check_line_points, line_ind, 'vert')
 
         line_ind = int(len(self.vert_lines) / 2)
-        check_line_points = get_line_points(self.lattice_points, line_ind, 1)
-        self.horiz_lines = self.get_extra_lines(check_line_points, line_ind, 1)
+        check_line_points = get_line_points(self.lattice_points, line_ind, 'horiz')
+        self.horiz_lines = self.get_extra_lines(check_line_points, line_ind, 'horiz')
 
         return find_intersection_lattice_points(self.horiz_lines, self.vert_lines, self.img.shape)
 
-    def get_extra_lines(self, line_points: list[Point], center_line_ind: int, line_type: int) -> list[Line]:
-        if line_type == 0:
+    def get_extra_lines(self, line_points: list[Point], center_line_ind: int, line_type: str) -> list[Line]:
+        if line_type == 'vert':
             lines = self.vert_lines
         else:
             lines = self.horiz_lines
@@ -97,7 +107,7 @@ class LatticePoints:
                 ind_val = 1
 
             if 0 < ratio < 0.45 or 1.45 < ratio < high_border:
-                if line_type == 0:
+                if line_type == 'vert':
                     k = get_mean_k(lines[line_points[ind + ind_val].line_ind_v].k,
                                    lines[line_points[ind + 1 + ind_val].line_ind_v].k)
                 else:
@@ -108,7 +118,7 @@ class LatticePoints:
                 lines.append(Line())
                 x, y = x_start + dif[0] / mean_ratio, y_start + dif[1] / mean_ratio
                 lines[-1].set_by_point_k((round(x), round(y)), k)
-                if line_type == 0:
+                if line_type == 'vert':
                     line_points.insert(ind + 1 + ind_val, Point((round(x), round(y)), center_line_ind, len(lines) - 1))
                 else:
                     line_points.insert(ind + 1 + ind_val, Point((round(x), round(y)), len(lines) - 1, center_line_ind))
@@ -128,10 +138,10 @@ class LatticePoints:
             # print(len(lines), '\n')
         return lines
 
-    def lines_postprocessing(self, line_type: int, dif_list, mean_ratio: float, start_dif):
+    def lines_postprocessing(self, line_type: str, dif_list, mean_ratio: float, start_dif):
         dif_list = [val[2] for val in dif_list]
 
-        if line_type == 0:
+        if line_type == 'vert':
             lines = sorted(self.vert_lines, key=lambda x: x.p1[0])
         else:
             lines = sorted(self.horiz_lines, key=lambda x: x.p1[1])
@@ -154,4 +164,23 @@ class LatticePoints:
             lines = lines[:ind + 2] + lines[end_ind + 1:]
             ind += 1
         # print(f'end len: {len(lines)}')
+        return lines
+
+    def shift_points_and_lines(self, x_shift: int, y_shift: int):
+        self.lattice_points = self.shift_points(self.lattice_points, x_shift, y_shift)
+        # self.border_points = self.shift_points(self.border_points, x_shift, y_shift)
+        self.vert_lines = self.shift_lines(self.vert_lines, x_shift, y_shift)
+        self.horiz_lines = self.shift_lines(self.horiz_lines, x_shift, y_shift)
+
+    def shift_points(self, points: list[Point], x_shift: int, y_shift: int):
+        for ind in range(len(points)):
+            points[ind].x += x_shift
+            points[ind].y += y_shift
+        return points
+
+    def shift_lines(self, lines: list[Line], x_shift: int, y_shift: int):
+        for ind in range(len(lines)):
+            x1, y1 = lines[ind].p1[0] + x_shift, lines[ind].p1[1] + y_shift
+            x2, y2 = lines[ind].p2[0] + x_shift,lines[ind].p2[1] + y_shift
+            lines[ind].set_by_raw_line(np.asarray([x1, y1, x2, y2]))
         return lines

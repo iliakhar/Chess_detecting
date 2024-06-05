@@ -2,6 +2,8 @@ from math import ceil
 
 from ChessNotation.BoardDetecting.LinesGroups import *
 
+def delete_border_points(lattice_points: list[Point], border_points: list[Point]) -> list[Point]:
+    pass
 
 def get_lines_with_count(img, tmp_lattice_points: list[Point], lines: LinesGroups):
     horiz_lines: list = []
@@ -247,7 +249,6 @@ def get_start_dif(dif_list, ratio_list) -> tuple[float, float, float]:
 def get_line_points(points: list[Point], line_ind: int, line_type: str) -> list[Point]:
     if line_type == 'vert':
         lmbd1, lmbd2 = lambda x: x.line_ind_h, lambda x: x.x
-
     else:
         lmbd1, lmbd2 = lambda x: x.line_ind_v, lambda x: x.y
     points = sorted(points, key=lmbd1)
@@ -266,7 +267,7 @@ def clear_points(img, dif_list, ratio_list, line_points, line_type):
     while ind < len(ratio_list) - 1:
         if ratio_list[ind] >= high_border and ratio_list[ind + 1] <= low_border:
             # draw_points(img, [line_points], [color1])
-            if line_type == 0:
+            if line_type == 'vert':
                 lines_ind_to_del.append(line_points[ind + 2].line_ind_v)
             else:
                 lines_ind_to_del.append(line_points[ind + 2].line_ind_h)
@@ -277,7 +278,7 @@ def clear_points(img, dif_list, ratio_list, line_points, line_type):
             ratio_list[ind] = ratio
             ratio_list.pop(ind + 1)
         elif ratio_list[ind] >= high_border and ind == 0:
-            if line_type == 0:
+            if line_type == 'vert':
                 lines_ind_to_del.append(line_points[ind].line_ind_v)
             else:
                 lines_ind_to_del.append(line_points[ind].line_ind_h)
@@ -288,7 +289,7 @@ def clear_points(img, dif_list, ratio_list, line_points, line_type):
             ind += 1
 
     if ratio_list[0] <= low_border:
-        if line_type == 0:
+        if line_type == 'vert':
             lines_ind_to_del.append(line_points[0].line_ind_v)
         else:
             lines_ind_to_del.append(line_points[0].line_ind_h)
@@ -296,7 +297,7 @@ def clear_points(img, dif_list, ratio_list, line_points, line_type):
         line_points.pop(0)
 
     if ratio_list[-1] >= high_border:
-        if line_type == 0:
+        if line_type == 'vert':
             lines_ind_to_del.append(line_points[-1].line_ind_v)
         else:
             lines_ind_to_del.append(line_points[-1].line_ind_h)
