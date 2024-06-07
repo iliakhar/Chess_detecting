@@ -30,7 +30,7 @@ class ChessPiecesDetecting:
         self.resized_img: np.ndarray | None = None
         self.chess_pieces: list[ChessPiece] = []
         self.neural_img_shape: tuple[int, int] = (736, 736)
-        self.yolo_model_pieces = YOLO('ChessNotation\\ChessPiecesDetecting\\models\\yolo8n_obb_3_100.pt')
+        self.yolo_model_pieces = YOLO('ChessNotation\\ChessPiecesDetecting\\models\\yolo8n_obb_4_120.pt')
         self.boards_list: list[list[list[tuple[int, float]]]] = []
         self.is_first_detecting: bool = True
         self.number_of_transpose: int = 0
@@ -66,7 +66,6 @@ class ChessPiecesDetecting:
     def _fix_position(self):
         if self.board_grid is None:
             return
-
         if self.check_frames_num == self.number_of_check_frames - 1:
             self.check_frames_num = 0
             result_board = self._find_mean_board()
@@ -137,6 +136,13 @@ class ChessPiecesDetecting:
         return board
 
     def draw_detect_chess_pieces(self, is_board_draw=True, is_piece_draw=True, is_wait=True):
+        tmp_img = self.get_detect_chess_pieces_img(is_board_draw, is_piece_draw, is_wait)
+        cv2.imshow('detect', tmp_img)
+        if is_wait:
+            cv2.waitKey(0)
+            cv2.destroyAllWindows()
+
+    def get_detect_chess_pieces_img(self, is_board_draw=True, is_piece_draw=True, is_wait=True):
         tmp_img = self.img.copy()
         if is_board_draw:
             color = (180, 130, 70)
@@ -156,10 +162,10 @@ class ChessPiecesDetecting:
                             cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
                 cv2.putText(tmp_img, prob_str, (piece.coord[0] - 20, piece.coord[1] + 25),
                             cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
-        cv2.imshow('detect', tmp_img)
-        if is_wait:
-            cv2.waitKey(0)
-            cv2.destroyAllWindows()
+        return tmp_img
+
+    def get_2d_chess(self):
+        return self.notation.chess_2d_img
 
     @staticmethod
     def get_empty_board():

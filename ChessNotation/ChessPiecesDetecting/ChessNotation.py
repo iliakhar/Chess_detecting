@@ -1,3 +1,6 @@
+import cv2
+import numpy as np
+
 from ChessNotation.ChessPiecesDetecting.ChessPiece import ChessPiece
 
 
@@ -12,11 +15,14 @@ class ChessNotation:
         self.board: list[list[int]] = []
         self.b_castling = 'kq'
         self.w_castling = 'KQ'
+        self.path_2d_pieces: str = 'ChessNotation\\ChessPiecesDetecting\\board_and_pieces\\'
+        self.chess_2d_img: np.ndarray = cv2.imread(self.path_2d_pieces + 'board.png')
 
     def set_board(self, board: list[list[int]]):
         if len(self.board) == 0:
             self.board = board.copy()
             print(self)
+            self._get_2d_chess()
             return
         cur_move: str = ''
         if self.w_castling != '-' or self.b_castling != '-':
@@ -62,10 +68,12 @@ class ChessNotation:
         start_pos, end_pos = (-1, -1), (-1, -1)
         pseudo_start = ((-1, -1), '')  # for ep
         piece, act = '', ''
+        number_of_changes: int = 0
         for row in range(8):
             for col in range(8):
                 prev_cell = self.board[row][col]
                 cur_cell = board[row][col]
+                number_of_changes += 1
                 if prev_cell != -1 and cur_cell == -1:
                     if start_pos[0] != -1:
                         pseudo_start = ((row, col), ChessPiece.classes[prev_cell][0].upper())
@@ -79,6 +87,11 @@ class ChessNotation:
                     end_pos = (row, col)
                     piece = ChessPiece.classes[cur_cell][0].upper()
                     act = 'x'
+                else:
+                    number_of_changes -= 1
+        # print('NM', number_of_changes)
+        if number_of_changes > 3:
+            return ''
         if start_pos[0] != -1 and end_pos[0] != -1:
             if piece == pseudo_start[1]:
                 start_pos = pseudo_start[0]
@@ -108,6 +121,8 @@ class ChessNotation:
         print(self.get_fen_notation())
         if self.cur_player == 'b':
             self.move_counter += 1
+        self._get_2d_chess()
+
 
     def _check_for_castling(self, new_board: list[list[int]]) -> str:
         row_num, rook_ind, king_ind = 0, 5, 1
@@ -142,6 +157,33 @@ class ChessNotation:
         else:
             self.b_castling = castling_availability.lower()
         return castling
+
+    def _get_2d_chess(self):
+        self.chess_2d_img: np.ndarray = cv2.imread(self.path_2d_pieces + 'board.png', -1)
+        start_pos, offset = (53, 53), 132
+        for row in range(8):
+            y = start_pos[1]+row*offset
+            for col in range(8):
+                piece_ind: int = self.board[row][col]
+                if piece_ind != -1:
+                    piece_symb:str = ChessPiece.classes[piece_ind][0]
+                    piece_symb = 'w'+piece_symb.lower() if piece_symb.isupper() else 'b'+piece_symb
+                    piece_img = cv2.imread(self.path_2d_pieces + piece_symb + '.png', -1)
+                    x = start_pos[0]+col*offset
+                    self.chess_2d_img = self.put_piece_img_on_board(self.chess_2d_img, piece_img, (x, y))
+
+        self.chess_2d_img = cv2.cvtColor(self.chess_2d_img, cv2.COLOR_BGRA2BGR)
+
+    def put_piece_img_on_board(self, board_img: np.ndarray, piece_img: np.ndarray, pos: tuple[int, int]):
+        y1, y2 = pos[1], pos[1] + piece_img.shape[0]
+        x1, x2 = pos[0], pos[0] + piece_img.shape[1]
+
+        alpha_s = piece_img[:, :, 3] / 255.0
+        alpha_l = 1.0 - alpha_s
+
+        for c in range(0, 3):
+            board_img[y1:y2, x1:x2, c] = (alpha_s * piece_img[:, :, c] + alpha_l * board_img[y1:y2, x1:x2, c])
+        return board_img
 
     def __str__(self):
         str_board: str = ''

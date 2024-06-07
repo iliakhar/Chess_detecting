@@ -43,7 +43,7 @@ def detect_video():
     chess_detect: ChessPiecesDetecting = ChessPiecesDetecting()
     # url = "http://192.168.0.66:8080/shot.jpg"
     # url = "http://192.168.0.66:8080/video"
-    url = 2
+    url = 1
 
 
     cap = cv2.VideoCapture(url)
@@ -58,12 +58,13 @@ def detect_video():
         # frame = np.array(bytearray(response.content), dtype=np.uint8)
         # frame = cv2.imdecode(frame, -1)
 
-        # print('b')
 
         ret, frame = cap.read()
         if frame is None:
             continue
-
+        # cv2.imshow('img_name', frame)
+        # cv2.waitKey(0)
+        # cv2.destroyAllWindows()
         # print(frame.shape)
 
         board_detect.set_image(frame)
@@ -73,7 +74,11 @@ def detect_video():
             chess_detect.set_image(frame)
             chess_detect.set_board_grid(board_grid)
             chess_detect.find_chess_pieces_positions()
-            chess_detect.draw_detect_chess_pieces(is_wait=False, is_piece_draw=True)
+            # chess_detect.draw_detect_chess_pieces(is_wait=False, is_piece_draw=True)
+            img1 = chess_detect.get_2d_chess()
+            cv2.imshow('ac1', img1)
+            cv2.waitKey(0)
+            cv2.destroyAllWindows()
 
 
         # board_detect.show_borders(False)
