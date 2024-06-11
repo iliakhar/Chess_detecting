@@ -76,6 +76,10 @@ class ChessPiecesDetecting:
         else:
             self.check_frames_num += 1
 
+    def rotate_board(self):
+        self.number_of_transpose = (self.number_of_transpose + 1) % 4
+        self.notation.rotate_board()
+
     def get_chess_pieces(self):
 
         result = self.yolo_model_pieces(self.resized_img, conf=0.5, verbose=False)[0]
@@ -136,13 +140,13 @@ class ChessPiecesDetecting:
         return board
 
     def draw_detect_chess_pieces(self, is_board_draw=True, is_piece_draw=True, is_wait=True):
-        tmp_img = self.get_detect_chess_pieces_img(is_board_draw, is_piece_draw, is_wait)
+        tmp_img = self.get_detect_chess_pieces_img(is_board_draw, is_piece_draw)
         cv2.imshow('detect', tmp_img)
         if is_wait:
             cv2.waitKey(0)
             cv2.destroyAllWindows()
 
-    def get_detect_chess_pieces_img(self, is_board_draw=True, is_piece_draw=True, is_wait=True):
+    def get_detect_chess_pieces_img(self, is_board_draw=True, is_piece_draw=True):
         tmp_img = self.img.copy()
         if is_board_draw:
             color = (180, 130, 70)

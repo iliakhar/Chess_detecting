@@ -1,14 +1,13 @@
 import uuid
 from os import getcwd
 
-from pygments.formatters import img
-
 from ChessNotation.BoardDetecting.LinesGroups import *
 from ChessNotation.BoardDetecting.Point import *
 from lattice_points_ml.ConvNet import ConvNet
 from ChessNotation.BoardDetecting.LatticePoints import LatticePoints
 from ChessNotation.BoardDetecting.BoardGrid import BoardGrid
 from ultralytics import YOLO
+
 
 class ChessBoardDetecting:
 
@@ -23,7 +22,8 @@ class ChessBoardDetecting:
 
         self.conv_model: ConvNet = ConvNet()
         self.conv_model = self.conv_model.to(self.conv_model.device)
-        self.conv_model.load_model(getcwd() + '\\lattice_points_ml\\model\\lattice_rotate_detect_6_100.pt')  # model_40_150.pt model_bigger_100
+        self.conv_model.load_model(
+            getcwd() + '\\lattice_points_ml\\model\\lattice_rotate_detect_6_100.pt')  # model_40_150.pt model_bigger_100
         LatticePoints.conv_model = self.conv_model
 
         self.lines: LinesGroups = LinesGroups(self.blur_koef, self.density_p)
@@ -54,13 +54,13 @@ class ChessBoardDetecting:
 
         borders = result.boxes.xyxyn.cpu().numpy()
         if len(borders) == 0:
-            return (0,0,0,0), []
+            return (0, 0, 0, 0), []
         borders_xywh = result.boxes.xywh.cpu().numpy()
         board_ind = 0
         max_area = 0
         for ind, border in enumerate(borders_xywh):
-            if border[2]*border[3] > max_area:
-                max_area = border[2]*border[3]
+            if border[2] * border[3] > max_area:
+                max_area = border[2] * border[3]
                 board_ind = ind
 
         x1, y1 = round(borders[board_ind][0] * self.img.shape[1]), round(borders[board_ind][1] * self.img.shape[0])
@@ -149,7 +149,8 @@ class ChessBoardDetecting:
         color1: tuple[int, int, int] = (0, 0, 139)
         lt = self.lattice_points
         # draw_points(self.img, [lt.lattice_points], [color], img_name, is_wait)
-        draw_points(self.img, [lt.lattice_points, [BoardGrid.board_center_list[-1]]], [color, color1], img_name, is_wait)
+        draw_points(self.img, [lt.lattice_points, [BoardGrid.board_center_list[-1]]], [color, color1], img_name,
+                    is_wait)
 
     def show_grupped_points(self, is_wait: bool = True, img_name: str = 'image3'):
         color1: tuple[int, int, int] = (22, 173, 61)  # all
@@ -163,6 +164,7 @@ class ChessBoardDetecting:
         if lt is None:
             return
         bg = self.board_grid.bp if self.board_grid is not None else []
-        points = [self.intersection_points, lt.lattice_points, [BoardGrid.board_center_list[-1]], bg, lt.border_points, [BoardGrid.const_board_center]]
+        points = [self.intersection_points, lt.lattice_points, [BoardGrid.board_center_list[-1]], bg, lt.border_points,
+                  [BoardGrid.const_board_center]]
         # points = [lt.lattice_points]
         draw_points(self.img, points, colors, img_name, is_wait)

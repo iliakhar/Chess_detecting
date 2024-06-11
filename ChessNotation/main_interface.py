@@ -1,4 +1,4 @@
-import PyQt6
+import sys
 
 from Interface.MainWindow import *
 

@@ -6,7 +6,7 @@ from ChessNotation.Interface.UsefulFuncs import *
 
 class LoaderWidget(QWidget):
 
-    def __init__(self, file_types: str = '', is_load: bool = True, font: QFont = QFont('Arial', 13)):
+    def __init__(self, file_types: str = '', is_load: bool = True, default_path: str = '', font: QFont = QFont('Arial', 13)):
         # "Images (*.png *.jpg)"
         # "Video Files (*.mp4)"
         super().__init__()
@@ -14,6 +14,7 @@ class LoaderWidget(QWidget):
         self.is_load = is_load
         self.file_types = file_types
         self.filename_edit = QLineEdit()
+        self.filename_edit.setText(default_path)
         self.initUI()
 
     def initUI(self):
@@ -46,3 +47,6 @@ class LoaderWidget(QWidget):
         if filename:
             path = Path(filename)
             self.filename_edit.setText(str(path))
+
+    def get_text(self):
+        return self.filename_edit.text()

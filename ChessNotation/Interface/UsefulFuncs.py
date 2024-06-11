@@ -1,6 +1,6 @@
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import (QFont, QPixmap, QIcon)
-from PyQt6.QtWidgets import QPushButton, QLabel, QSpinBox, QFrame, QSlider
+from PyQt6.QtWidgets import QPushButton, QLabel, QSpinBox, QFrame, QSlider, QCheckBox, QRadioButton, QGroupBox
 
 
 def create_btn(title: str, font: QFont, func, min_h: int = 35, min_w: int = 100):
@@ -34,8 +34,14 @@ def create_frame(layout):
     # QFrame.Shape.StyledPanel
     frame.setFrameShape(QFrame.Shape.Panel)
     frame.setLayout(layout)
-    frame.setWindowIconText('afsdfasf')
     return frame
+
+
+def create_groupbox(text: str, layout, font: QFont):
+    group_box = QGroupBox(text)
+    group_box.setFont(QFont(font))
+    group_box.setLayout(layout)
+    return group_box
 
 
 def create_slider(range_vals: tuple[int, int], step: int, val: int, width: int, enable: bool):
@@ -44,5 +50,21 @@ def create_slider(range_vals: tuple[int, int], step: int, val: int, width: int, 
     slider.setRange(range_vals[0], range_vals[1])
     slider.setValue(val)
     slider.setSingleStep(step)
-    slider.setFixedWidth(width)
+    if width != -1:
+        slider.setFixedWidth(width)
     return slider
+
+
+def create_checkbox(text: str, val: bool, font: QFont):
+    checkbox = QCheckBox(text)
+    checkbox.setFont(font)
+    checkbox.setChecked(val)
+    return checkbox
+
+
+def create_radio_btn(title: str, val: bool, font: QFont):
+    radio_btn = QRadioButton(title)
+    radio_btn.setFont(font)
+    radio_btn.setChecked(val)
+    return radio_btn
+

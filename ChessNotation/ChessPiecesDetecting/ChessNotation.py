@@ -7,8 +7,11 @@ from ChessNotation.ChessPiecesDetecting.ChessPiece import ChessPiece
 class ChessNotation:
     def __init__(self):
         self.col_names: list[str] = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']
+        self.move_describe: int = -1  #  -1 - не было хода, 0 - ход белых, 1 - ход черных, 2 - fen без хода
         self.alg_not: str = ''
-        self.en_passant: str = ''
+        self.fen_not: str = ''
+        self.alg_not_list: list[list[str]] = []
+        self.en_passant: str = '-'
         self.move_counter: int = 1
         self.half_move: int = 0
         self.cur_player: str = 'w'
@@ -17,12 +20,15 @@ class ChessNotation:
         self.w_castling = 'KQ'
         self.path_2d_pieces: str = 'ChessNotation\\ChessPiecesDetecting\\board_and_pieces\\'
         self.chess_2d_img: np.ndarray = cv2.imread(self.path_2d_pieces + 'board.png')
+        self.filename_ind_alg = 0
 
     def set_board(self, board: list[list[int]]):
         if len(self.board) == 0:
             self.board = board.copy()
             print(self)
             self._get_2d_chess()
+            self.fen_not = self.get_fen_notation()
+            self.move_describe = 2
             return
         cur_move: str = ''
         if self.w_castling != '-' or self.b_castling != '-':
@@ -33,11 +39,21 @@ class ChessNotation:
                 return
 
         cur_move += self._check_for_movement(board)
-        if cur_move != '':
+        if cur_move != '' and cur_move != 'err':
             if cur_move[0] == 'P':
                 cur_move = cur_move[1:]
             self.board = board.copy()
             self.make_move(cur_move)
+        elif cur_move == 'err':
+            # pass
+            self.board = board.copy()
+            self._get_2d_chess()
+
+    def rotate_board(self):
+        self.board = np.rot90(self.board, k=1).tolist()
+        self.fen_not = self.get_fen_notation()
+        self._get_2d_chess()
+        self.move_describe = 2
 
     def get_fen_notation(self):
         fen_not: str = ''
@@ -83,15 +99,15 @@ class ChessNotation:
                 elif prev_cell == -1 and cur_cell != -1:
                     end_pos = (row, col)
                     piece = ChessPiece.classes[cur_cell][0].upper()
-                elif (1 <= cur_cell < 6 and 6 <= prev_cell < 12) or (1 <= prev_cell < 6 and 6 <= cur_cell < 12):
+                elif (0 <= cur_cell < 6 <= prev_cell < 12) or (0 <= prev_cell < 6 <= cur_cell < 12):
                     end_pos = (row, col)
                     piece = ChessPiece.classes[cur_cell][0].upper()
                     act = 'x'
                 else:
                     number_of_changes -= 1
         # print('NM', number_of_changes)
-        if number_of_changes > 3:
-            return ''
+        if number_of_changes > 5:
+            return 'err'
         if start_pos[0] != -1 and end_pos[0] != -1:
             if piece == pseudo_start[1]:
                 start_pos = pseudo_start[0]
@@ -100,7 +116,7 @@ class ChessNotation:
             elif piece == 'P' and start_pos[0] == 6 and end_pos[0] == 4:
                 self.en_passant = self.col_names[end_pos[1]] + str(3)
             else:
-                self.en_passant = ''
+                self.en_passant = '-'
             if piece == 'p' or piece == 'P' or act == 'x':
                 self.half_move = 0
             else:
@@ -112,13 +128,18 @@ class ChessNotation:
     def make_move(self, move: str):
         if self.cur_player == 'w':
             self.alg_not += str(self.move_counter) + '. ' + move + ' '
+            self.alg_not_list.append([move])
+            self.move_describe = 0
         else:
             self.alg_not += move + ' '
+            self.alg_not_list[-1].append(move)
+            self.move_describe = 1
             print(f'\nAlg not: {self.alg_not}')
         print(f'Move: {move}')
         print(self)
         self.cur_player = 'w' if self.cur_player == 'b' else 'b'
-        print(self.get_fen_notation())
+        self.fen_not = self.get_fen_notation()
+        print(self.fen_not)
         if self.cur_player == 'b':
             self.move_counter += 1
         self._get_2d_chess()
@@ -184,6 +205,13 @@ class ChessNotation:
         for c in range(0, 3):
             board_img[y1:y2, x1:x2, c] = (alpha_s * piece_img[:, :, c] + alpha_l * board_img[y1:y2, x1:x2, c])
         return board_img
+
+    def save_alg_not(self, path: str):
+        path += '\\'+str(self.filename_ind_alg)+'.txt'
+        self.filename_ind_alg += 1
+        with open(path, 'w', encoding='utf-8') as f:
+            f.write(self.alg_not)
+
 
     def __str__(self):
         str_board: str = ''

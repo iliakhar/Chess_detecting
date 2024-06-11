@@ -1,4 +1,5 @@
 import numpy as np
+from copy import deepcopy
 
 from ChessNotation.BoardDetecting.ChessBoardDetecting import *
 from ChessNotation.BoardDetecting.LatticeDetectFuncs import *
@@ -26,7 +27,9 @@ class BoardGrid:
     number_of_frame: int = 8
     frame_ind: int = 0
     last_borders: list[Line] = []
+    const_last_borders: list[Line] = []
     is_board_fixed: bool = False
+    if_const_border_find: bool = False
 
     def __init__(self, source_img: np.ndarray, vert_lines: list[Line], horiz_lines: list[Line],
                  lattice_points: list[Point]):
@@ -42,19 +45,18 @@ class BoardGrid:
         self.grid: list[Line] = []
         self.bp: list[Point] = []
 
-        if len(BoardGrid.last_borders) != 0:
-            self.is_hand_under_board = self._check_for_hand()
+        self.check_for_hand(self.img, 'last')
 
         if not self.is_hand_under_board:
             self._get_board_center()
             if BoardGrid.frame_ind == BoardGrid.number_of_frame - 1:
                 BoardGrid.is_board_fixed = True
+                BoardGrid.if_const_border_find = True
                 self._get_const_border_info()
-            self._get_border_info()
+            else:
+                self._get_border_info()
             BoardGrid.frame_ind += 1
             BoardGrid.frame_ind %= BoardGrid.number_of_frame
-        else:
-            print('Hand under board')
 
     def _get_const_border_info(self):
         border_info = []
@@ -68,6 +70,7 @@ class BoardGrid:
                 x, y, k, ratio = round(x / len(border)), round(y / len(border)), k / len(border), ratio / len(border)
             border_info.append((x, y, k, ratio))
         BoardGrid.const_grid, _ = self._get_border_lines_and_centers(border_info, BoardGrid.const_board_center)
+        BoardGrid.const_last_borders = deepcopy(BoardGrid.const_grid)
         ratio_list: list[float] = self._pull_ratio_from_border_info(border_info)
         BoardGrid.const_vert_lines, BoardGrid.const_horiz_lines = self._get_all_grid(BoardGrid.const_grid, ratio_list)
         BoardGrid.const_grid = BoardGrid.const_vert_lines + BoardGrid.const_horiz_lines
@@ -229,22 +232,35 @@ class BoardGrid:
         elif len(BoardGrid.board_center_list) == 0:
             BoardGrid.board_center_list.append(BoardGrid.const_board_center)
 
-    def _check_for_hand(self):
-        result = self.yolo_model_hands(self.img, conf=0.65, verbose=False)[0]
+    def check_for_hand(self, img: np.ndarray, border_type: str):
+        if (border_type == 'last' and len(BoardGrid.last_borders) == 0) or \
+                (border_type == 'const' and len(BoardGrid.const_last_borders) == 0):
+            return
+
+        result = self.yolo_model_hands(img, conf=0.65, verbose=False)[0]
         borders = result.boxes.xyxyn.cpu().numpy()
+        # if border_type == 'const':
+        #     print(img.shape, borders)
+        #     for border in BoardGrid.last_borders:
+        #         print(border)
+        #     cv2.imshow('img_name', img)
+        #     cv2.waitKey(0)
         is_point_on_board: bool = False
         for ind in range(len(borders)):
-            x1, y1 = round(borders[ind][0] * self.img.shape[1]), round(borders[ind][1] * self.img.shape[0])
-            x2, y2 = round(borders[ind][2] * self.img.shape[1]), round(borders[ind][3] * self.img.shape[0])
+            x1, y1 = round(borders[ind][0] * img.shape[1]), round(borders[ind][1] * img.shape[0])
+            x2, y2 = round(borders[ind][2] * img.shape[1]), round(borders[ind][3] * img.shape[0])
 
             cords = [(x1, y1), (x2, y1), (x2, y2), (x1, y2)]
+            board_borders = BoardGrid.last_borders if border_type == 'last' else BoardGrid.const_last_borders
             for cord in cords:
-                is_point_on_board = self._check_is_point_on_board(cord, BoardGrid.last_borders)
+                is_point_on_board = self._check_is_point_on_board(cord, board_borders)
                 if is_point_on_board:
                     break
             if is_point_on_board:
                 break
-        return is_point_on_board
+        self.is_hand_under_board = is_point_on_board
+        if self.is_hand_under_board:
+            print('Hand under board')
 
     def _check_is_point_on_board(self, point: tuple[int, int], borders: list[Line]) -> bool:
         # draw_lines(self.img, [[borders[], borders[1]]], [(180, 130, 70)])
