@@ -20,18 +20,18 @@ def detect_photo():
     chess_detect: ChessPiecesDetecting = ChessPiecesDetecting()
 
     while True:
-        frame = cv2.imread('ChessNotation/source/img/line9.jpg')
+        frame = cv2.imread('ChessNotation/source/img/p9.jpg')
         board_detect.set_image(frame)
         board_grid: BoardGrid = board_detect.detect_board()
 
-        chess_detect.set_image(frame)
-        chess_detect.set_board_grid(board_grid)
-        chess_detect.find_chess_pieces_positions()
-        print(chess_detect)
-        chess_detect.draw_detect_chess_pieces(is_wait=False, is_piece_draw=True)
+        # chess_detect.set_image(frame)
+        # chess_detect.set_board_grid(board_grid)
+        # chess_detect.find_chess_pieces_positions()
+        # print(chess_detect)
+        # chess_detect.draw_detect_chess_pieces(is_wait=False, is_piece_draw=True)
 
-        # board_detect.show_borders(False)
-        # board_detect.show_grupped_points(False, 'img123')
+        board_detect.show_borders(False)
+        board_detect.show_grupped_points(False, 'img123')
 
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
@@ -94,8 +94,8 @@ def detect_video():
 
 
 def main():
-    # detect_photo()
-    detect_video()
+    detect_photo()
+    # detect_video()
 
 
 if __name__ == '__main__':

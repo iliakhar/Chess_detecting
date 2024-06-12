@@ -1,3 +1,6 @@
+import os
+
+import cv2
 from PyQt6.QtWidgets import *
 from PyQt6.QtCore import *
 from PyQt6.QtGui import (QFont, QPixmap, QIcon)
@@ -10,6 +13,7 @@ class LoadDialog(QDialog):
 
     def __init__(self, media_type: str):
         super().__init__()
+        self.setWindowIcon(QIcon('icon/2.png'))
         self.media_type = media_type
         self.media_filter: str = "Video Files (*.mp4)"
         if media_type == 'img':
@@ -23,19 +27,20 @@ class LoadDialog(QDialog):
         self.loader_alg_not = LoaderWidget(font=self.big_font, default_path='D:\\stud\\diplom\\diplom\\notation_test\\alg')
         self.loader_fen_not = LoaderWidget(font=self.big_font, default_path='D:\\stud\\diplom\\diplom\\notation_test\\fen')
 
-        self.board_spinbox = create_spinbox(1, 20, self.big_font, start_val=10)
-        self.pieces_spinbox = create_spinbox(1, 10, self.big_font, start_val=3)
+        self.board_spinbox = create_spinbox(2, 20, self.big_font, start_val=10)
+        self.pieces_spinbox = create_spinbox(2, 10, self.big_font, start_val=3)
         self.auto_radio_btn = create_radio_btn("Автоматический", True, self.big_font)
         self.manual_radio_btn = create_radio_btn("По нажатию кнопки", False, self.big_font)
 
         self.initUI()
 
     def initUI(self):
-        self.setFixedSize(600, 630)
 
         if self.media_type == 'img':
+            self.setFixedSize(600, 420)
             source_lbl = create_label('Выберите изображение:', self.big_font)
         else:
+            self.setFixedSize(600, 630)
             source_lbl = create_label('Выберите видео (путь, https или номер порта):', self.big_font)
 
         alg_not_lbl = create_label('Папка для сохранения алгебраичечской нотации:', self.big_font)
@@ -80,9 +85,11 @@ class LoadDialog(QDialog):
         location_v_layout.addWidget(source_lbl)
         location_v_layout.addWidget(self.loader_media)
         location_v_layout.addSpacing(20)
-        location_v_layout.addWidget(alg_not_lbl)
-        location_v_layout.addWidget(self.loader_alg_not)
-        location_v_layout.addSpacing(20)
+
+        if self.media_type == 'video':
+            location_v_layout.addWidget(alg_not_lbl)
+            location_v_layout.addWidget(self.loader_alg_not)
+            location_v_layout.addSpacing(20)
         location_v_layout.addWidget(fen_not_lbl)
         location_v_layout.addWidget(self.loader_fen_not)
         location_v_layout.addSpacing(5)
@@ -91,11 +98,12 @@ class LoadDialog(QDialog):
         accuracy_v_layout.addLayout(board_frames_h_layout)
         accuracy_v_layout.addSpacing(20)
         accuracy_v_layout.addLayout(pieces_frames_h_layout)
-        accuracy_v_layout.addSpacing(20)
-        accuracy_v_layout.addWidget(board_detect_lbl)
-        accuracy_v_layout.addSpacing(5)
-        accuracy_v_layout.addWidget(self.auto_radio_btn)
-        accuracy_v_layout.addWidget(self.manual_radio_btn)
+        if self.media_type == 'video':
+            accuracy_v_layout.addSpacing(20)
+            accuracy_v_layout.addWidget(board_detect_lbl)
+            accuracy_v_layout.addSpacing(5)
+            accuracy_v_layout.addWidget(self.auto_radio_btn)
+            accuracy_v_layout.addWidget(self.manual_radio_btn)
 
         accuracy_v_layout.addSpacing(5)
 
@@ -113,6 +121,33 @@ class LoadDialog(QDialog):
         self.setLayout(main_v_lay)
 
     def click_accept(self):
+        msg: str = ''
+        media_name = self.loader_media.get_text()
+        folder_fen = self.loader_fen_not.get_text()
+        folder_alg = self.loader_alg_not.get_text()
+        if media_name == '':
+            return
+        if not media_name.isdigit():
+            cap = cv2.VideoCapture(media_name)
+            if cap is None or not cap.isOpened():
+                msg = 'Ошибка в пути или ссылке'
+        else:
+            cap = cv2.VideoCapture(int(media_name))
+            if cap is None or not cap.isOpened():
+                msg = 'Неверный номер порта'
+        if not os.path.exists(folder_fen):
+            msg = "Выбранной папки для FEN не существует"
+        if self.media_type == 'video' and not os.path.exists(folder_alg):
+            msg = "Выбранной папки для алг. нотации не существует"
+
+        if msg != '':
+            dlg = QMessageBox(self)
+            dlg.setWindowTitle("Ошибка ввода")
+            dlg.setText(msg)
+            dlg.setWindowIcon(QIcon('icon/2.png'))
+            dlg.exec()
+            return
+
         self.is_accept = True
         self.close()
 

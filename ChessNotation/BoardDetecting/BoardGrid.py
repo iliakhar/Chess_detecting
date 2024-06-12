@@ -58,6 +58,22 @@ class BoardGrid:
             BoardGrid.frame_ind += 1
             BoardGrid.frame_ind %= BoardGrid.number_of_frame
 
+    @staticmethod
+    def clear():
+        BoardGrid.board_center_list = []
+        BoardGrid.const_board_center = Point((5, 5))
+        BoardGrid.borders_info = [[], [], [], []]
+        BoardGrid.const_grid = []
+        BoardGrid.const_vert_lines = []
+        BoardGrid.const_horiz_lines = []
+        BoardGrid.const_img_size = (1, 1)
+        BoardGrid.frame_ind = 0
+        BoardGrid.last_borders = []
+        BoardGrid.const_last_borders = []
+        BoardGrid.is_board_fixed = False
+        BoardGrid.if_const_border_find = False
+
+
     def _get_const_border_info(self):
         border_info = []
         for border in BoardGrid.borders_info:

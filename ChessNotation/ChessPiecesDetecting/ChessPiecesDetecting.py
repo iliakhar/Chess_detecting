@@ -29,8 +29,9 @@ class ChessPiecesDetecting:
         self.img: np.ndarray | None = None
         self.resized_img: np.ndarray | None = None
         self.chess_pieces: list[ChessPiece] = []
-        self.neural_img_shape: tuple[int, int] = (736, 736)
-        self.yolo_model_pieces = YOLO('ChessNotation\\ChessPiecesDetecting\\models\\yolo8n_obb_4_120.pt')
+        self.neural_img_shape: tuple[int, int] = (960, 960)
+        # self.yolo_model_pieces = YOLO('ChessNotation\\ChessPiecesDetecting\\models\\yolo8n_obb_4_120.pt')
+        self.yolo_model_pieces = YOLO('ChessNotation\\ChessPiecesDetecting\\models\\yolo8s960_0_40.pt')
         self.boards_list: list[list[list[tuple[int, float]]]] = []
         self.is_first_detecting: bool = True
         self.number_of_transpose: int = 0

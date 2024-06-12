@@ -13,7 +13,7 @@ class VideoThread(QThread):
     signal_change_pixmap = pyqtSignal(np.ndarray, np.ndarray)
     signal_change_notation = pyqtSignal(int, str, str)
 
-    def __init__(self):
+    def __init__(self, signal_stop):
         super().__init__()
         self.board_detect: ChessBoardDetecting = ChessBoardDetecting()
         self.chess_detect: ChessPiecesDetecting = ChessPiecesDetecting()
@@ -24,6 +24,9 @@ class VideoThread(QThread):
         self.is_video_stop = False
         self.is_check_once = False
         self.is_search_board = True
+        self.is_run = True
+
+        signal_stop.connect(self.set_is_run)
 
     def stop_running(self):
         """Terminate the thread."""
@@ -33,26 +36,33 @@ class VideoThread(QThread):
     def run(self):
         self.board_detect = ChessBoardDetecting()
         self.chess_detect = ChessPiecesDetecting()
+        BoardGrid.clear()
 
         if self.media_type == 'video':
             self.video_processing()
         else:
             self.img_processing()
 
+    def set_is_run(self, val):
+        self.is_run = val
 
     def video_processing(self):
+        # print('START')
         media_name = int(self.media_name) if self.media_name.isdigit() else self.media_name
         cap = cv2.VideoCapture(media_name)
         ret, frame = cap.read()
         self.board_detect.set_image(frame)
         board_grid: BoardGrid = self.board_detect.detect_board()
         frame_tmp = frame
-        while True:
+        self.is_run = True
+        i=0
+        while self.is_run:
+            print(self.is_run, i)
+            i = (i+1) % 100
             if not self.is_video_stop:
                 ret, frame_tmp = cap.read()
             if frame_tmp is not None:
                 frame = frame_tmp
-
             if self.is_check_once:
                 if self.is_search_board:
                     self.board_detect.set_image(frame)
@@ -78,6 +88,9 @@ class VideoThread(QThread):
                 fen = self.chess_detect.notation.get_fen_notation()
                 self.signal_change_notation.emit(0, '', fen)
                 self.chess_detect.notation.move_describe = -1
+        # print('STOP0')
+        # self.stop_running()
+        # print('STOP1')
 
     def img_processing(self):
         frame = cv2.imread(self.media_name)

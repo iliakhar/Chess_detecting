@@ -1,3 +1,4 @@
+from PyQt6.QtCore import pyqtSignal
 from PyQt6.QtWidgets import *
 from PyQt6.QtGui import (QFont, QPixmap, QIcon, QAction)
 from ChessNotation.BoardDetecting.ChessBoardDetecting import *
@@ -10,10 +11,12 @@ from ChessNotation.Interface.VideoThread import VideoThread
 
 
 class MainWindow(QWidget):
+    signal_stop_running = pyqtSignal(bool)
+
     def __init__(self, parent=None):
         super().__init__(parent)
         self.big_font = QFont('Arial', 13)
-        self.video_thread = VideoThread()
+        self.video_thread = VideoThread(self.signal_stop_running)
 
         self.workspace = ImagePresentationWidget()
         self.chess_move_widget = ChessMoveWidget()
@@ -25,7 +28,7 @@ class MainWindow(QWidget):
 
     def InitUi(self):
         self.setWindowTitle('Chess detector')
-        # self.setWindowIcon(QIcon('icon/table_icon.png'))
+        self.setWindowIcon(QIcon('icon/2.png'))
         self.setMinimumSize(1100, 900)
 
         self._create_menu()
@@ -66,6 +69,11 @@ class MainWindow(QWidget):
         self._create_menu_item(file_menu, "Загрузить картинку", "Ctrl+W", self._load_img)
         file_menu.addSeparator()
         self._create_menu_item(file_menu, "Выход", "Ctrl+E", self.close_window)
+
+    def create_new_video_thread(self):
+        self.video_thread = VideoThread(self.signal_stop_running)
+        self.video_thread.signal_change_pixmap.connect(self.set_image)
+        self.video_thread.signal_change_notation.connect(self.change_notation)
 
     def _create_menu_item(self, menu: QMenu, name: str, shortcut: str, func):
         action = QAction(name, self)
@@ -110,25 +118,35 @@ class MainWindow(QWidget):
 
         dlg.exec()
         if dlg.is_accept:
-            self.workspace.stop_btn.setEnabled(True)
+            print('afasfdaf')
+            # self.video_thread.is_run = False
+            self.signal_stop_running.emit(False)
+            # self.video_thread.stop_running()
+            self.create_new_video_thread()
             self.workspace.rotate_btn.setEnabled(True)
             self.workspace.find_board_btn.setEnabled(True)
+            self.fen_widget.save_btn.setEnabled(True)
+            self.fen_widget.set_media_type(media_type)
 
             self.video_thread.is_video_stop = False
             self.video_thread.is_search_board = True
-            self.video_thread.is_check_once = dlg.manual_radio_btn.isChecked()
             self.workspace.is_video_stop = False
             self.workspace.stop_btn.setText('Стоп')
-            self.video_thread.stop_running()
-            self.alg_path = dlg.loader_alg_not.get_text()
             self.fen_widget.save_path = dlg.loader_fen_not.get_text()
             self.video_thread.media_name = dlg.loader_media.filename_edit.text()
             self.video_thread.chess_detect.number_of_check_frames = int(dlg.pieces_spinbox.text())
             self.chess_move_widget.moves_list.clear()
-            self.chess_move_widget.save_btn.setEnabled(True)
-            self.fen_widget.save_btn.setEnabled(True)
             self.fen_widget.filename_ind_fen = 0
             BoardGrid.number_of_frame = int(dlg.board_spinbox.text())
+
+            if media_type == 'img':
+                self.workspace.stop_btn.setEnabled(False)
+                self.chess_move_widget.save_btn.setEnabled(False)
+            else:
+                self.workspace.stop_btn.setEnabled(True)
+                self.video_thread.is_check_once = dlg.manual_radio_btn.isChecked()
+                self.alg_path = dlg.loader_alg_not.get_text()
+                self.chess_move_widget.save_btn.setEnabled(True)
 
             self.video_thread.media_type = media_type
             self.video_thread.start()

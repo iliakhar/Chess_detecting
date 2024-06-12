@@ -25,6 +25,7 @@ class ChessNotation:
     def set_board(self, board: list[list[int]]):
         if len(self.board) == 0:
             self.board = board.copy()
+            self._check_for_castling(board)
             print(self)
             self._get_2d_chess()
             self.fen_not = self.get_fen_notation()
@@ -70,11 +71,18 @@ class ChessNotation:
             if empty_cell_counter != 0:
                 fen_not += str(empty_cell_counter)
             fen_not += '/'
-        castling: str = self.w_castling + self.b_castling
-        if self.b_castling == '-':
-            castling = self.w_castling + ' -'
-        elif self.w_castling == '-':
-            castling = self.b_castling + ' -'
+        # castling: str = self.w_castling + self.b_castling
+        castling: str = ''
+        if self.w_castling != '-':
+            castling += self.w_castling
+        if self.b_castling != '-':
+            castling += self.b_castling
+        if castling == '':
+            castling = '-'
+        # if self.b_castling == '-':
+        #     castling = self.w_castling + ' -'
+        # elif self.w_castling == '-':
+        #     castling = self.b_castling + ' -'
         fen_not = fen_not[:-1] + ' ' + self.cur_player + ' ' + castling + ' ' + self.en_passant
         fen_not += ' ' + str(self.half_move) + ' ' + str(self.move_counter)
         return fen_not
@@ -106,12 +114,14 @@ class ChessNotation:
                 else:
                     number_of_changes -= 1
         # print('NM', number_of_changes)
+        # if number_of_changes > 0:
+        #     print(f'number_of_changes: {number_of_changes}')
         if number_of_changes > 5:
             return 'err'
         if start_pos[0] != -1 and end_pos[0] != -1:
             if piece == pseudo_start[1]:
                 start_pos = pseudo_start[0]
-            if piece == 'p' and start_pos[0] == 1 and end_pos[0] == 3:
+            if piece == 'P' and start_pos[0] == 1 and end_pos[0] == 3:
                 self.en_passant = self.col_names[end_pos[1]] + str(5)
             elif piece == 'P' and start_pos[0] == 6 and end_pos[0] == 4:
                 self.en_passant = self.col_names[end_pos[1]] + str(3)

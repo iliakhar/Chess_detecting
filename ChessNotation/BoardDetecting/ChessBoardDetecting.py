@@ -18,7 +18,7 @@ class ChessBoardDetecting:
         self.density_p: float = 0.3
         self.img_min_size: int = 416
         self.neural_img_shape: tuple[int, int] = (416, 416)
-        self.board_detect_model = YOLO('ChessNotation\\BoardDetecting\\models\\board_detect.pt')
+        self.board_detect_model = YOLO('ChessNotation\\BoardDetecting\\models\\board_detect_40.pt')
 
         self.conv_model: ConvNet = ConvNet()
         self.conv_model = self.conv_model.to(self.conv_model.device)
