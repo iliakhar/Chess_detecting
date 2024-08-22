@@ -31,7 +31,7 @@ class ChessPiecesDetecting:
         self.chess_pieces: list[ChessPiece] = []
         self.neural_img_shape: tuple[int, int] = (960, 960)
         # self.yolo_model_pieces = YOLO('ChessNotation\\ChessPiecesDetecting\\models\\yolo8n_obb_4_120.pt')
-        self.yolo_model_pieces = YOLO('ChessNotation\\ChessPiecesDetecting\\models\\yolo8s960_0_40.pt')
+        self.yolo_model_pieces = YOLO('ChessNotation\\ChessPiecesDetecting\\models\\yolo8s960_0_40.pt')# yolo8s960_mix_50, yolo8s960_0_40
         self.boards_list: list[list[list[tuple[int, float]]]] = []
         self.is_first_detecting: bool = True
         self.number_of_transpose: int = 0
@@ -84,7 +84,6 @@ class ChessPiecesDetecting:
     def get_chess_pieces(self):
 
         result = self.yolo_model_pieces(self.resized_img, conf=0.5, verbose=False)[0]
-
         raw_box = result.obb.xyxyxyxyn.cpu().numpy()
         cls = result.obb.cls.cpu().numpy()
         probs = result.obb.conf.cpu().numpy()
@@ -152,9 +151,10 @@ class ChessPiecesDetecting:
         if is_board_draw:
             color = (180, 130, 70)
             for line in BoardGrid.const_grid:
+                line.set_is_img_size_matter(True)
                 x1, y1 = line.p1
                 x2, y2 = line.p2
-                if 0 < x1 < tmp_img.shape[1] and 0 < y1 < tmp_img.shape[0]:
+                if 0 <= x1 <= tmp_img.shape[1] and 0 <= y1 <= tmp_img.shape[0]:
                     cv2.line(tmp_img, (x1, y1), (x2, y2), color, 2)
 
         if is_piece_draw:

@@ -20,7 +20,8 @@ def detect_photo():
     chess_detect: ChessPiecesDetecting = ChessPiecesDetecting()
 
     while True:
-        frame = cv2.imread('ChessNotation/source/img/p9.jpg')
+        frame = cv2.imread('ChessNotation/source/img/p5.jpg')
+        # frame = cv2.imread('D:\\stud\\chess_detection\\frames\\18\\4a1b6a0c322f4263d75046c55d3c07c4.jpg')
         board_detect.set_image(frame)
         board_grid: BoardGrid = board_detect.detect_board()
 
@@ -30,8 +31,9 @@ def detect_photo():
         # print(chess_detect)
         # chess_detect.draw_detect_chess_pieces(is_wait=False, is_piece_draw=True)
 
-        board_detect.show_borders(False)
-        board_detect.show_grupped_points(False, 'img123')
+        # board_detect.show_borders(False)
+        board_detect.show_grid(False)
+        board_detect.show_grupped_points(True, 'img123')
 
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
@@ -70,19 +72,19 @@ def detect_video():
         board_detect.set_image(frame)
         board_grid: BoardGrid = board_detect.detect_board()
 
-        if BoardGrid.is_board_fixed:
-            chess_detect.set_image(frame)
-            chess_detect.set_board_grid(board_grid)
-            chess_detect.find_chess_pieces_positions()
-            # chess_detect.draw_detect_chess_pieces(is_wait=False, is_piece_draw=True)
-            img1 = chess_detect.get_2d_chess()
-            cv2.imshow('ac1', img1)
-            cv2.waitKey(0)
-            cv2.destroyAllWindows()
+        # if BoardGrid.is_board_fixed:
+        #     chess_detect.set_image(frame)
+        #     chess_detect.set_board_grid(board_grid)
+        #     chess_detect.find_chess_pieces_positions()
+        #     chess_detect.draw_detect_chess_pieces(is_wait=False, is_piece_draw=True)
+        #     img1 = chess_detect.get_2d_chess()
+        #     cv2.imshow('ac1', img1)
+        #     cv2.waitKey(0)
+        #     cv2.destroyAllWindows()
 
-
-        # board_detect.show_borders(False)
-        # board_detect.show_grupped_points(False, 'img123')
+        board_detect.show_borders(False)
+        board_detect.show_grid(False)
+        board_detect.show_grupped_points(True, 'img123')
         if cv2.waitKey(1) & 0xFF == ord('e'):
             break
 

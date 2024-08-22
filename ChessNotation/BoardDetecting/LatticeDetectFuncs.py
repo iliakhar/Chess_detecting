@@ -2,10 +2,8 @@ from math import ceil
 
 from ChessNotation.BoardDetecting.LinesGroups import *
 
-def delete_border_points(lattice_points: list[Point], border_points: list[Point]) -> list[Point]:
-    pass
 
-def get_lines_with_count(img, tmp_lattice_points: list[Point], lines: LinesGroups):
+def get_all_lines(img, tmp_lattice_points: list[Point], lines: LinesGroups):
     horiz_lines: list = []
     vert_lines: list = []
     horiz_dict: dict[int: int] = {}
@@ -23,7 +21,9 @@ def get_lines_with_count(img, tmp_lattice_points: list[Point], lines: LinesGroup
         else:
             vert_dict[point.line_ind_v] = len(vert_lines)
             vert_lines.append([lines.result_lines[point.line_ind_v], 1])
-    return vert_lines, horiz_lines
+    vert_lst = [val[0] for val in vert_lines]
+    horiz_lst = [val[0] for val in horiz_lines]
+    return vert_lst, horiz_lst
 
 
 def get_border_cord_and_angle(points: list[Point], lines: list[Line], line_type: str):
@@ -92,24 +92,17 @@ def get_border_cord_and_angle(points: list[Point], lines: list[Line], line_type:
 
 ######################################
 def exclude_the_wrong_lines(img, lines_lst: list, lines_type: int, angle_lim=5, dif_lim=20) -> list[Line]:
-    # ln = [val[0] for val in lines_lst]
-    # draw_lines(img, [ln], [(22, 173, 61), (180, 130, 70)])
-    lines_lst = delete_lines_with_one_point(lines_lst)
-    # print(lines_type)
-    # draw_lines(img, [lines_lst], [(22, 173, 61), (180, 130, 70)])
     lines_lst = sorted(list(lines_lst), key=lambda x: x.angle)
     tmp_lines: list[list[Line]] = [[]]
     if len(lines_lst) != 0:
         lines_lst.append(lines_lst[-1])
     for ind in range(len(lines_lst) - 1):
         delta = lines_lst[ind + 1].angle - lines_lst[ind].angle
-        # print(delta)
         if delta < angle_lim:
             tmp_lines[-1].append(lines_lst[ind])
         else:
             tmp_lines[-1].append(lines_lst[ind])
             tmp_lines.append([])
-        # draw_lines(img, [[lines_lst[ind + 1]], [lines_lst[ind]]], [(22, 173, 61), (180, 130, 70)])
     if len(tmp_lines) > 1:
         if 180 - (tmp_lines[-1][-1].angle - tmp_lines[0][0].angle) < angle_lim:
             tmp_lines[0] += tmp_lines[-1]
@@ -117,37 +110,30 @@ def exclude_the_wrong_lines(img, lines_lst: list, lines_type: int, angle_lim=5, 
     lines = max(tmp_lines, key=lambda x: len(x))
     fix_cord = 100
     if lines_type == 0:
-        coords = [(fix_cord-ln.b)/ln.k for ln in lines]
+        coords = [(fix_cord - ln.b) / ln.k for ln in lines]
     else:
-        coords = [ln.k*fix_cord+ln.b for ln in lines]
+        coords = [ln.k * fix_cord + ln.b for ln in lines]
     ind = 0
     lines_and_cord = list(zip(lines, coords))
     if len(lines_and_cord) != 0:
         lines_and_cord.sort(key=lambda x: x[1])
         lines, _ = list(zip(*lines_and_cord))
         lines = list(lines)
-    # print(f'[{img.shape[1]*0.2}, {img.shape[1]*0.8}]  ,  [{img.shape[0]*0.2}, {img.shape[0]*0.8}]')
     while ind < len(lines) - 1:
-        diff = abs(lines_and_cord[ind][1] - lines_and_cord[ind+1][1])
-        # diff = get_lines_dif(lines[ind], lines[ind + 1], lines_type)
+        diff = abs(lines_and_cord[ind][1] - lines_and_cord[ind + 1][1])
         cords = get_intersection_point(lines[ind], lines[ind + 1])
         if cords is None:
-            cords = [-1, -1]
             cords = [5000, 5000]
-        # print(diff, cords, lines[ind].line_len)
-        # print(lines[ind])
-        # draw_lines(img, [[lines[ind]], [lines[ind+1]]], [(22, 173, 61), (180, 130, 70)])
-        if (diff < dif_lim) or (img.shape[1]*0.2<cords[0]<img.shape[1]*0.8 and img.shape[0]*0.2<cords[-1]<img.shape[0]*0.8):
-            # print('delete')
+        if (diff < dif_lim) or (img.shape[1] < cords[0] < img.shape[1] and img.shape[0] < cords[1] < img.shape[0]):
             if ind != 0:
-                dif1 = abs(normalize_angle(lines[ind].angle - lines[ind-1].angle))
-                dif2 = abs(normalize_angle(lines[ind+1].angle - lines[ind - 1].angle))
+                dif1 = abs(normalize_angle(lines[ind].angle - lines[ind - 1].angle))
+                dif2 = abs(normalize_angle(lines[ind + 1].angle - lines[ind - 1].angle))
                 if dif1 > dif2:
                     lines.pop(ind)
                     lines_and_cord.pop(ind)
                 else:
-                    lines.pop(ind+1)
-                    lines_and_cord.pop(ind+1)
+                    lines.pop(ind + 1)
+                    lines_and_cord.pop(ind + 1)
             else:
                 lines.pop(ind)
                 lines_and_cord.pop(ind)
@@ -155,27 +141,9 @@ def exclude_the_wrong_lines(img, lines_lst: list, lines_type: int, angle_lim=5, 
             ind += 1
     if len(lines) > 1:
         diff = abs(lines_and_cord[0][1] - lines_and_cord[-1][1])
-        # diff = get_lines_dif(lines[0], lines[-1], lines_type)
         if diff < dif_lim:
             lines.pop(0)
-    # if lines_type == 0:
-    #     print('vert')
-    # else:
-    #     print('horiz')
-    # for ln in lines:
-    #     print(f'line: {ln}')
-    # draw_lines(img, [lines], [(22, 173, 61)])
     return lines
-
-
-def delete_lines_with_one_point(lines_lst: list):
-    # ind = 0
-    # while ind < len(lines_lst):
-    #     if lines_lst[0][1] < 2:
-    #         lines_lst.pop(ind)
-    #     else:
-    #         ind += 1
-    return [val[0] for val in lines_lst]
 
 
 def get_dif_list_and_ratio(img, line_points: list[Point]):

@@ -41,7 +41,7 @@ def draw_lines(img: np.ndarray, grouped_lines: list[list[Line]], colors: list[tu
             line.set_is_img_size_matter(True)
             x1, y1 = line.p1
             x2, y2 = line.p2
-            if 0 < x1 < img.shape[1] and 0 < y1 < img.shape[0]:
+            if 0 <= x1 < img.shape[1] and 0 <= y1 < img.shape[0]:
                 cv2.line(tmp_img, (x1, y1), (x2, y2), colors[group_ind % len(colors)], 2)
     cv2.imshow(img_name, tmp_img)
     if is_wait:
@@ -54,7 +54,7 @@ def draw_points(img: np.ndarray, grouped_points: list[list[Point]], colors: list
     tmp_img = img.copy()
     for group_ind, group in enumerate(grouped_points):
         for point in group:
-            cv2.circle(tmp_img, center=(point.x, point.y), radius=6, color=colors[group_ind % len(colors)],
+            cv2.circle(tmp_img, center=(point.x, point.y), radius=5, color=colors[group_ind % len(colors)],
                        thickness=-1, )
     cv2.imshow(img_name, tmp_img)
     if is_wait:

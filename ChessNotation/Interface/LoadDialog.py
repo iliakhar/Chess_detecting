@@ -27,7 +27,7 @@ class LoadDialog(QDialog):
         self.loader_alg_not = LoaderWidget(font=self.big_font, default_path='D:\\stud\\diplom\\diplom\\notation_test\\alg')
         self.loader_fen_not = LoaderWidget(font=self.big_font, default_path='D:\\stud\\diplom\\diplom\\notation_test\\fen')
 
-        self.board_spinbox = create_spinbox(2, 20, self.big_font, start_val=10)
+        self.board_spinbox = create_spinbox(1, 20, self.big_font, start_val=10)
         self.pieces_spinbox = create_spinbox(2, 10, self.big_font, start_val=3)
         self.auto_radio_btn = create_radio_btn("Автоматический", True, self.big_font)
         self.manual_radio_btn = create_radio_btn("По нажатию кнопки", False, self.big_font)

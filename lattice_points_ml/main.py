@@ -57,30 +57,33 @@ def canny_folders(folder_from: str, folder_to: str):
 
 
 def main():
-    # folder_from = getcwd() + '\\lattice_points_ml\\latchess21\\photos\\3\\border_180'
-    # folder_to = getcwd() + '\\lattice_points_ml\\latchess21\\photos\\3\\border_270'
-    # os.mkdir(folder_to)
-    # rotate_n_image(-1, folder_from, folder_to)
+    # path = getcwd() + '\\lattice_points_ml\\latchess21\\photos\\mix\\'
+    # types = ['ok', 'no', 'border']
+    # rotates = ['_0', '_90', '_180', '_270']
+    # for tp in types:
+    #     folders = [tp + rt for rt in rotates]
+    #     for ind in range(len(folders)-1):
+    #         folder_from = path + folders[ind]
+    #         folder_to = path + folders[ind+1]
+    #         os.mkdir(folder_to)
+    #         rotate_n_image(-1, folder_from, folder_to)
+
 
     #
     # canny_folders(folder_from, folder_to)
 
-    # # # rename_images(folder_from, folder_to)
-    # # rotate_n_image(1000, folder_from, folder_to)
-    # # resave_to_gray_image(folder_from, folder_to)
-
-    # annot_path: str = getcwd() + '\\lattice_points_rotate_5_annot.csv'
-    # folder_path = getcwd() + '\\lattice_points_ml\\latchess21\\photos\\3\\'
+    # annot_path: str = getcwd() + '\\lattice_points_mix_annot.csv'
+    # folder_path = getcwd() + '\\lattice_points_ml\\latchess21\\photos\\mix\\'
     # create_annotation(annot_path, folder_path, ['no', 'ok', 'border'])
 
-    annot_train_filename = 'lattice_points_rotate_5_annot.csv'
-
+    annot_train_filename = 'lattice_points_mix_annot.csv'
+    #
     model: ConvNet = ConvNet()
     model = model.to(model.device)
     model.load_model(getcwd() + '\\lattice_points_ml\\model\\lattice_rotate_detect_6_100.pt')
-    number_of_epochs = 50
+    number_of_epochs = 30
     batch_size = 8
-    model.train_model(number_of_epochs, annot_train_filename, 'lattice_rotate_detect_6_150.pt', batch_size)
+    model.train_model(number_of_epochs, annot_train_filename, 'lattice_mix_130.pt', batch_size)
 
 
 if __name__ == '__main__':

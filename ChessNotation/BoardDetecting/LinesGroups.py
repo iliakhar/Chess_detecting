@@ -26,33 +26,17 @@ class LinesGroups:
         self.lines = self.get_lines(gray_img)
         if len(self.lines) == 0:
             return
-        # draw_lines(self.img, [self.lines], [(30, 120, 60)])
-        # self.remove_unnecessary_lines(0.999)
         h, w = img.shape[:2]
         self.area = h * w
         grouped_lines, self.colors_list = self.find_collinear_lines()
         grouped_points: list[list[tuple[int, int]]] = self.get_lines_dots(grouped_lines)
         self.result_lines = self.group_lines_by_points(grouped_points)
 
-        # points: list[list[Point]] = []
-        # for group in grouped_points:
-        #     points.append([])
-        #     for point in group:
-        #         points[-1].append(Point((point[0], point[1])))
-        #
-        # draw_lines(self.img, [self.lines], [(22, 173, 61)])
-        # draw_lines(self.img, grouped_lines, self.colors_list)
-        # draw_points(self.img, points, self.colors_list)
-        # draw_lines(self.img, [self.result_lines], [(22, 173, 61)])
-
     def get_lines(self, img: np.ndarray) -> list[Line]:
         gaussian = cv2.GaussianBlur(img, (self.blur_koef, self.blur_koef), 0)
-        edges = cv2.Canny(gaussian, 100, 140, apertureSize=3)  # 90, 120 | 120, 160 | 180, 370 | 180, 220
-        # cv2.imshow('i', edges)
-        # cv2.waitKey(0)
-        # cv2.destroyAllWindows()
-        raw_lines: np.ndarray = cv2.HoughLinesP(edges, 1, np.pi / 180, 70,
-                                                minLineLength=5, maxLineGap=15)
+        edges = cv2.Canny(gaussian, 150, 200, apertureSize=3)  # 90, 120 | 120, 160 | 180, 370 | 180, 220
+        raw_lines: np.ndarray = cv2.HoughLinesP(edges, 1, np.pi / 360, 60,
+                                                minLineLength=10, maxLineGap=10)
         lines: list[Line] = []
         if type(raw_lines) is not np.ndarray:
             return []
@@ -60,17 +44,13 @@ class LinesGroups:
             lines.append(Line(False))
             lines[-1].set_by_raw_line(raw_line[0])
         lines.sort(key=lambda x: x.angle)
-        # color = (22, 173, 61)
-        # for l in lines:
-        #     print(l)
-        #     draw_lines(self.img, [[l]], [color])
 
         return lines
 
     def find_collinear_lines(self) -> tuple[list, list]:
-        lim_angle = 3
+        lim_angle = 5
         standard_area = 640800
-        normal_delta: float = 18 * (self.area / standard_area) ** 0.5
+        normal_delta: float = 25 * (self.area / standard_area) ** 0.5
         collinear_list: list = []
         used_lines: list = []
         colors_list: list = []
@@ -94,18 +74,12 @@ class LinesGroups:
         return collinear_list, colors_list
 
     def get_lines_dots(self, grouped_lines: list[list[Line]]) -> list[list[tuple[int, int]]]:
-        standard_area = 640800
+        standard_area = 46656
         standard_pixel_per_point = 10
         pixels_per_point = standard_pixel_per_point * (self.area / standard_area) ** 0.5
         pixels_per_point /= self.density_p
-        # pixels_per_point: int = round((self.area / 640000) * (self.density_p) * 100)
         grouped_points = []
-        # color = (22, 173, 61)
         for line_group in grouped_lines:
-            # for l in line_group:
-            #     print(l)
-            # print()
-            # draw_lines(self.img, [line_group], [color])
             group_of_points: list[tuple[int, int]] = []
             for line in line_group:
                 line_len = line.line_len
@@ -133,11 +107,6 @@ class LinesGroups:
         lines: list[Line] = []
         min_line_len = (self.area ** 0.5) * 0.03
         for group in grouped_points:
-            # x_nd = np.array([x for x, _ in group])
-            # y_nd = np.array([y for _, y in group])
-            # if x_nd.size < 2:
-            #     continue
-            # k, b = np.polyfit(x_nd, y_nd, 1)
             min(group, key=lambda x: x[0])
             k, b = self.get_k_b_by_points(group)
             if k is None:
@@ -150,17 +119,10 @@ class LinesGroups:
                 left_y, right_y = k * left_x + b, k * right_x + b
             line = Line(False)
             line.set_by_raw_line(np.array([round(left_x), round(left_y), round(right_x), round(right_y)]))
-            # points = [Point((round(x), round(y))) for x, y in group]
-            # print(group)
-            # print(f'len group: {len(group)}, len line: {line.line_len}, min line: {min_line_len}')
-            # print(left_x, left_y, right_x, right_y, '\n')
-            # draw_points(self.img, [points], [(22, 173, 61)], is_wait=False)
-            # draw_lines(self.img, [[line]], [(22, 173, 61)])
             if len(group) <= 1:
                 if line.line_len < min_line_len:
                     continue
             lines.append(line)
-        # draw_lines(self.img, [lines], [(22, 173, 61)])
         return lines
 
     def get_k_b_by_points(self, points_group):
@@ -173,27 +135,23 @@ class LinesGroups:
         avg_y /= len(points_group)
         delta_xy: float = 0
         delta_x_square: float = 0
-        if avg_x == points_group[0][0]:
+        number_of_avg_x_repeat = 0
+        for x in points_group:
+            if avg_x != x[0]:
+                break
+            else:
+                number_of_avg_x_repeat += 1
+        if number_of_avg_x_repeat == len(points_group):
             k = 100
             b = points_group[0][1] - k * points_group[0][0]
             return k, b
-
         for point in points_group:
             delta_xy += (point[0] - avg_x) * (point[1] - avg_y)
             delta_x_square += (point[0] - avg_x) ** 2
-
         if delta_x_square == 0:
             delta_x_square = 0.00001
         k: float = delta_xy / delta_x_square
         b: float = avg_y - k * avg_x
-
-        # x_nd = np.array([x for x, _ in points_group])
-        # y_nd = np.array([y for _, y in points_group])
-        # if x_nd.size < 2:
-        #     return None, None
-        # k, b = np.polyfit(x_nd, y_nd, 1)
-        # print(k, b, ' | ', k1, b1, ' | ', len(x_nd), len(y_nd))
-        # print(x_nd, '\n', y_nd, '\n')
         if k == 0:
             k = 0.00001
         return k, b

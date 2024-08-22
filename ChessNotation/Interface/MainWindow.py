@@ -118,7 +118,7 @@ class MainWindow(QWidget):
 
         dlg.exec()
         if dlg.is_accept:
-            print('afasfdaf')
+            # print('afasfdaf')
             # self.video_thread.is_run = False
             self.signal_stop_running.emit(False)
             # self.video_thread.stop_running()

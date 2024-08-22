@@ -26,34 +26,44 @@ class Line:
         self.p2 = np.array([x2, y2])
         self.k, self.b = get_line_solution([self.p1, self.p2])
         self.angle = atan(self.k) * 180 / pi
-        if not self.is_img_size_matter:
-            self.p1 = np.array(self.check_point_out(x1, y1))
-            self.p2 = np.array(self.check_point_out(x2, y2))
+        if self.is_img_size_matter:
+            self.check_point_out()
         self.line_len = self.norm(self.p2 - self.p1)
         self.find_normals()
 
     def set_is_img_size_matter(self, is_img_size_matter: bool):
         if is_img_size_matter:
             self.is_img_size_matter = True
-            self.p1 = np.array(self.check_point_out(self.p1[0], self.p1[1]))
-            self.p2 = np.array(self.check_point_out(self.p2[0], self.p2[1]))
+            self.check_point_out()
         else:
             self.is_img_size_matter = False
 
-    def check_point_out(self, x, y):
-        if x < 0:
-            x = 2
-            y = round(self.k * x + self.b)
-        elif x >= Line.shape[1]:
-            x = Line.shape[1] - 2
-            y = round(self.k * x + self.b)
-        if y < 0:
-            y = 2
-            x = round((y - self.b)/self.k)
-        elif x >= Line.shape[1]:
-            y = Line.shape[0] - 2
-            x = round((y - self.b)/self.k)
-        return x, y
+    def check_point_out(self):#########################################
+        # if len(self.p1) != 2 and len(self.p2)!= 2:
+        #     return
+        if not (0 <= self.p1[0] < self.shape[1] and 0 <= self.p1[1] < self.shape[0]) or \
+            not (0 <= self.p2[0] < self.shape[1] and 0 <= self.p2[1] < self.shape[0]):
+            points = [self.p1, self.p2]
+            if self.k == 0:
+                self.k = 0.00001
+            inter_border_points = [round(self.b), round(self.k*self.shape[1]+self.b),
+                                   round(-self.b/self.k), round((self.shape[0]-self.b)/self.k)]
+            if 0<inter_border_points[0]<self.shape[0]:
+                points.append(np.array([0, inter_border_points[0]]))
+            if 0 < inter_border_points[1] < self.shape[0]:
+                points.append(np.array([self.shape[1], inter_border_points[1]]))
+            if 0<inter_border_points[2]<self.shape[1]:
+                points.append(np.array([inter_border_points[2], 0]))
+            if 0 < inter_border_points[3] < self.shape[1]:
+                points.append(np.array([inter_border_points[3], self.shape[1]]))
+            if abs(self.k) < 1:
+                points = sorted(points, key=lambda p: p[0])
+            else:
+                points = sorted(points, key=lambda p: p[1])
+            if len(points) == 4:
+                self.p1, self.p2 = points[1], points[2]
+            elif len(points) == 2:
+                self.p1, self.p2 = points[0], points[1]
 
     def set_by_point_k(self, cord: tuple[int, int], k: float):
         self.k = k
@@ -61,11 +71,13 @@ class Line:
 
         x1, y1 = 2, round(self.k * 2 + self.b)
         x2, y2 = Line.shape[0] - 2, round(self.k * (Line.shape[0] - 2) + self.b)
+
+        self.p1 = np.array([x1, y1])
+        self.p2 = np.array([x2, y2])
         # print(f'k = {self.k}, b = {self.b}, cord = {cord}')
         # print(f'1) {x1}, {y1}; {x2}, {y2}')
         # print(f'1) {x1}, {y1}; {x2}, {y2}\n')
-        self.p1 = np.array(self.check_point_out(x1, y1))
-        self.p2 = np.array(self.check_point_out(x2, y2))
+        self.check_point_out()
 
         self.angle = atan(self.k) * 180 / pi
         self.find_normals()

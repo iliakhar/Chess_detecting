@@ -55,10 +55,10 @@ class VideoThread(QThread):
         board_grid: BoardGrid = self.board_detect.detect_board()
         frame_tmp = frame
         self.is_run = True
-        i=0
+        # i=0
         while self.is_run:
-            print(self.is_run, i)
-            i = (i+1) % 100
+            # print(self.is_run, i)
+            # i = (i+1) % 100
             if not self.is_video_stop:
                 ret, frame_tmp = cap.read()
             if frame_tmp is not None:
@@ -96,7 +96,8 @@ class VideoThread(QThread):
         frame = cv2.imread(self.media_name)
         self.board_detect.set_image(frame)
         board_grid: BoardGrid = self.board_detect.detect_board()
-        while True:
+        self.is_run = True
+        while self.is_run:
             if self.is_search_board:
                 self.board_detect.set_image(frame)
                 board_grid = self.board_detect.detect_board()

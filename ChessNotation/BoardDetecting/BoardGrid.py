@@ -49,12 +49,13 @@ class BoardGrid:
 
         if not self.is_hand_under_board:
             self._get_board_center()
+            self._get_border_info()
             if BoardGrid.frame_ind == BoardGrid.number_of_frame - 1:
                 BoardGrid.is_board_fixed = True
                 BoardGrid.if_const_border_find = True
                 self._get_const_border_info()
-            else:
-                self._get_border_info()
+            # else:
+            #     self._get_border_info()
             BoardGrid.frame_ind += 1
             BoardGrid.frame_ind %= BoardGrid.number_of_frame
 
@@ -102,7 +103,10 @@ class BoardGrid:
             return
         if len(self.vert_lines) == 0 or len(self.horiz_lines) == 0:
             return
-        center = BoardGrid.board_center_list[-1]
+        if len(BoardGrid.board_center_list) == 0:
+            center = BoardGrid.const_board_center
+        else:
+            center = BoardGrid.board_center_list[-1]
         info = self._get_opposite_borders_info(self.vert_lines, int(len(self.horiz_lines) / 2), 'vert')  # l, r
         info += self._get_opposite_borders_info(self.horiz_lines, int(len(self.vert_lines) / 2), 'horiz')  # u, d
         for ind in range(len(info)):
@@ -117,13 +121,7 @@ class BoardGrid:
         BoardGrid.last_borders = self.grid.copy()
         ratio_list: list[float] = self._pull_ratio_from_border_info(border_info)
         self.vert_lines, self.horiz_lines = self._get_all_grid(self.grid, ratio_list)
-        # draw_lines(self.img, [self.vert_lines, self.horiz_lines], [(180, 130, 70), (22, 173, 61)])
         self.grid = self.horiz_lines + self.vert_lines
-        # if len(BoardGrid.const_vert_lines) == 0 or len(BoardGrid.const_horiz_lines) == 0:
-        #     BoardGrid.const_vert_lines = self.vert_lines
-        #     BoardGrid.const_horiz_lines = self.horiz_lines
-        #     BoardGrid.const_grid = BoardGrid.const_vert_lines + BoardGrid.const_horiz_lines
-        #     BoardGrid.const_img_size = self.img.shape[:2]
 
 
     def _pull_ratio_from_border_info(self, border_info):
@@ -154,11 +152,11 @@ class BoardGrid:
         if len(borders) == 0:
             return [], []
         points: list = []
-        connected_lines = [(0, 1), (2, 3)]
         for ind, line in enumerate(borders):
             line_type = 'horiz' if ind // 2 == 0 else 'vert'
             points.append(self._get_border_lattice_points(line, ratio_list[ind], line_type))
 
+        connected_lines = [(0, 1), (2, 3)]
         vert_horiz_lines: list[list[Line]] = []
         for connect in connected_lines:
             lines: list[Line] = []
@@ -170,9 +168,6 @@ class BoardGrid:
             vert_horiz_lines.append(lines)
         vert_horiz_lines[0] = [borders[2]] + vert_horiz_lines[0] + [borders[3]]
         vert_horiz_lines[1] = [borders[0]] + vert_horiz_lines[1] + [borders[1]]
-        # for i in range(len(vert_horiz_lines)):
-        #     for ind in range(len(vert_horiz_lines[i])):
-        #         vert_horiz_lines[i][ind].set_is_img_size_matter(True)
         return vert_horiz_lines[0], vert_horiz_lines[1]
 
     def _get_border_lattice_points(self, line: Line, ratio: float, line_type: str):
@@ -217,6 +212,7 @@ class BoardGrid:
             border_points_center.append(Point(cord))
             borders.append(Line(False))
             borders[-1].set_by_point_k(cord, border[2])
+        # print(self.img.shape)
         border_points = find_intersection_lattice_points(borders[2:], borders[:2], self.img.shape[:2], True)
         if len(border_points) != 4:
             return borders, border_points_center
@@ -228,16 +224,6 @@ class BoardGrid:
         return borders, border_points_center
 
     def _get_board_center(self):
-        if BoardGrid.frame_ind == BoardGrid.number_of_frame - 1:
-            x, y = 0, 0
-            for point in BoardGrid.board_center_list:
-                x += point.x
-                y += point.y
-            x = int(x / len(BoardGrid.board_center_list))
-            y = int(y / len(BoardGrid.board_center_list))
-            BoardGrid.const_board_center = Point((x, y))
-            BoardGrid.board_center_list = []
-
         if len(self.lattice_points) != 0:
             x, y = 0.0, 0.0
             for point in self.lattice_points:
@@ -248,6 +234,16 @@ class BoardGrid:
         elif len(BoardGrid.board_center_list) == 0:
             BoardGrid.board_center_list.append(BoardGrid.const_board_center)
 
+        if BoardGrid.frame_ind == BoardGrid.number_of_frame - 1:
+            x, y = 0, 0
+            for point in BoardGrid.board_center_list:
+                x += point.x
+                y += point.y
+            x = int(x / len(BoardGrid.board_center_list))
+            y = int(y / len(BoardGrid.board_center_list))
+            BoardGrid.const_board_center = Point((x, y))
+            BoardGrid.board_center_list = []
+
     def check_for_hand(self, img: np.ndarray, border_type: str):
         if (border_type == 'last' and len(BoardGrid.last_borders) == 0) or \
                 (border_type == 'const' and len(BoardGrid.const_last_borders) == 0):
@@ -255,12 +251,6 @@ class BoardGrid:
 
         result = self.yolo_model_hands(img, conf=0.65, verbose=False)[0]
         borders = result.boxes.xyxyn.cpu().numpy()
-        # if border_type == 'const':
-        #     print(img.shape, borders)
-        #     for border in BoardGrid.last_borders:
-        #         print(border)
-        #     cv2.imshow('img_name', img)
-        #     cv2.waitKey(0)
         is_point_on_board: bool = False
         for ind in range(len(borders)):
             x1, y1 = round(borders[ind][0] * img.shape[1]), round(borders[ind][1] * img.shape[0])
@@ -279,14 +269,10 @@ class BoardGrid:
             print('Hand under board')
 
     def _check_is_point_on_board(self, point: tuple[int, int], borders: list[Line]) -> bool:
-        # draw_lines(self.img, [[borders[], borders[1]]], [(180, 130, 70)])
-        # draw_lines(self.img, [[borders[2], borders[3]]], [(180, 130, 70)])
         x1 = (point[1] - borders[2].b) / borders[2].k
         x2 = (point[1] - borders[3].b) / borders[3].k
         y1 = borders[0].k * point[0] + borders[0].b
         y2 = borders[1].k * point[0] + borders[1].b
-        # print(point)
-        # print(x1, x2, y1, y2, '\n')
         if x1 < point[0] < x2 and y1 < point[1] < y2:
             return True
         return False
